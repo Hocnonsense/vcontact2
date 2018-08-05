@@ -132,7 +132,7 @@ cd vcontact2 && pip install .
 Singularity
 
 ```bash
-singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db ‘None’ --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 Local installs
@@ -151,7 +151,7 @@ The only required files are:
 
  1. A FASTA-formatted amino acid file.
 
- ```file
+```
  >ref|NP_039777.1| ORF B-251 [Sulfolobus spindle-shaped virus 1]
  MVRNMKMKKSNEWLWLGTKIINAHKTNGFESAIIFGKQGTGKTTYALKVAKEVYQRLGHE
  PDKAWELALDSLFFELKDALRIMKIFRQNDRTIPIIIFDDAGIWLQKYLWYKEEMIKFYR
@@ -166,8 +166,8 @@ The only required files are:
 
  2. A "gene-to-genome" mapping file, in either \*.tsv (tab) or \*.csv (comma) separated format.
 
- ```file
- protein_id,contig_id,keywords
+```
+protein_id,contig_id,keywords
 ref|NP_039777.1|,Sulfolobus spindle-shaped virus 1,ORF B-251
 ref|NP_039778.1|,Sulfolobus spindle-shaped virus 1,ORF D-335
 ref|NP_039779.1|,Sulfolobus spindle-shaped virus 1,ORF E-54
@@ -181,7 +181,7 @@ ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,ORF E-96
 
  * [Alternatively] Multiple keywords must be separated using ";":
 
- ```file
+```
 protein_id,contig_id,keywords
 ref|NP_039777.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovirus;Sulfolobus spindle-shaped virus 1;ORF B-251
 ref|NP_039778.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovirus;Sulfolobus spindle-shaped virus 1;ORF D-335
@@ -202,7 +202,7 @@ vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-f
 
 In addition to the gene-to-genome mapping file (above), users must provide a tab-delimited (i.e. "tabular") BLASTP (-outfmt 6) or Diamond file (--outfmt 0).
 
-```file
+```
 NP_039777.1	NP_039777.1	100.0	251	0	0	1	251	1	251	2.1e-144	510.8
 NP_039777.1	YP_003331457.1	49.2	238	114	4	5	239	1	234	1.4e-55	215.7
 NP_039777.1	YP_003331489.1	49.6	234	111	4	2	232	20	249	3.2e-55	214.5
@@ -274,6 +274,16 @@ vcontact --contigs-fp [contig csv file] --pcs-fp [PCs csv file] --pcprofiles-fp
 ```
 
 Please note that using this method will disallow the use of reference databases.
+
+### Example files
+
+Example files are provided in the test_data/ directory. To use vConTACT2 with them, run the following command:
+
+```bash
+vcontact2 --raw-proteins test_data/VIRSorter_viral_prots.faa --rel-mode ‘Diamond’ --proteins-fp test_data/proteins.csv --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir VirSorted_Outputs
+```
+
+You should file a large assortment of input, intermediary and final output files in the "VirSorted_Outputs" directory. *Most important* is node_table_summary.csv **node_table_summary.csv** file. It has a list of genomes processed, as well as any reference databases used. 
 
 ## Citation
 
