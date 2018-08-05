@@ -210,9 +210,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
 
         if len(genome_df) > 1:
             print('Identified multiple genomes')
-            print(vc_df)
-            print(genome_df)
-            exit(1)
+            continue
 
         genome_s = genome_df.iloc[0]
 
