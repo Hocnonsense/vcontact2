@@ -1,0 +1,257 @@
+"""Protein_clusters.py"""
+
+import os
+import gzip
+from Bio import SeqIO
+import pandas as pd
+import logging
+import subprocess
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+
+def merge_aa(user_aa_fp, ref_db_fp, merged_aa_fp):
+    """
+
+    :param user_aa_fp:
+    :param ref_db_fp:
+    :return:
+    """
+
+    with open(merged_aa_fp, 'w') as merged_aa_fh:
+        for aa_fp in [user_aa_fp, ref_db_fp]:
+            if '.gz' in aa_fp:
+                with gzip.open(aa_fp, 'rt') as aa_fh:
+                    seq_records = SeqIO.parse(aa_fh, 'fasta')
+                    SeqIO.write(seq_records, merged_aa_fh, 'fasta')
+            else:
+                with open(aa_fp, 'rU') as aa_fh:
+                    seq_records = SeqIO.parse(aa_fh, 'fasta')
+                    SeqIO.write(seq_records, merged_aa_fh, 'fasta')
+
+    return merged_aa_fp
+
+
+def make_blast_db(aa_fp):
+
+    out_db = '{}.db'.format(aa_fp.rsplit('.', 1)[0])
+    makeblastcmd = 'makeblastdb -in {} -input_type fasta -dbtype prot -hash_index -out {}'.format(aa_fp, out_db)
+
+    logger.debug("Creating BLAST DB...")
+    subprocess.check_call(makeblastcmd, shell=True)
+
+    return out_db
+
+
+def run_blastp(aa_fp, db_fp, evalue, cpu, blastp_out_fp):
+
+    blastp_cmd = 'blastp -task blastp -query {} -db {} -out {} -evalue {} -outfmt 6 -num_threads {}'.format(
+        aa_fp, db_fp, blastp_out_fp, evalue, cpu)
+
+    logger.debug("Running BLASTP...")
+    subprocess.check_call(blastp_cmd, shell=True)
+
+    return blastp_out_fp
+
+
+def make_diamond_db(aa_fp, db_dir, cpu):
+
+    diamond_db_bp = os.path.join(db_dir, os.path.basename(aa_fp).rsplit('.', 1)[0])
+    make_diamond_cmd = 'diamond makedb --threads {} --in {} -d {}'.format(cpu, aa_fp, diamond_db_bp)
+
+    logger.debug("Creating Diamond database...")
+    subprocess.check_call(make_diamond_cmd, shell=True)
+
+    diamond_db_fp = diamond_db_bp + '.dmnd'
+
+    return diamond_db_fp
+
+
+def run_diamond(aa_fp, db_fp, cpu, diamond_out_fn):
+
+    # More sensitive as an option?
+    diamond_cmd = 'diamond blastp --threads {} --sensitive -d {} -q {} -o {}'.format(
+        cpu, db_fp, aa_fp, diamond_out_fn)
+
+    logger.debug("Running Diamond...")
+    subprocess.check_call(diamond_cmd, shell=True)
+
+    return diamond_out_fn
+
+
+def make_protein_clusters_mcl(blast_fp, out_p, inflation=2):
+    """
+    Args: 
+        blast_fi (str): Blast results file
+        inflation (float): MCL's inflation
+        out_p (str): output directory path
+    Returns:
+        str: fp for MCL clustering file
+    """
+
+    logger.debug("Generating abc file...")
+
+    blast_fn = os.path.basename(blast_fp)
+    abc_fn = '{}.abc'.format(blast_fn)
+    abc_fp = os.path.join(out_p, abc_fn)
+    subprocess.check_call("awk '$1!=$2 {{print $1,$2,$11}}' {0} > {1}".format(blast_fp, abc_fp), shell=True)
+
+    logger.debug("Running MCL...")
+
+    mci_fn = '{}.mci'.format(blast_fn)
+    mci_fp = os.path.join(out_p, mci_fn)
+    mcxload_fn = '{}_mcxload.tab'.format(blast_fn)
+    mcxload_fp = os.path.join(out_p, mcxload_fn)
+    subprocess.check_call("mcxload -abc {0} --stream-mirror --stream-neg-log10 -stream-tf 'ceil(200)' -o {1}"
+                          " -write-tab {2}".format(abc_fp, mci_fp, mcxload_fp), shell=True)
+
+    mcl_clstr_fn = "{0}_mcl{1}.clusters".format(blast_fn, int(inflation*10))
+    mcl_clstr_fp = os.path.join(out_p, mcl_clstr_fn)
+
+    subprocess.check_call("mcl {0} -I {1} -use-tab {2} -o {3}".format(
+        mci_fp, inflation, mcxload_fp, mcl_clstr_fp), shell=True)
+
+    return mcl_clstr_fp
+
+
+def make_protein_clusters_one(blast_fp, c1_bin, out_p, overlap, penalty, haircut):
+    """
+    Args:x
+        blast_fi (str): Blast results file
+        out_p (str): output directory path
+        overlap (int): hold
+        penalty (int): hold
+        haircut (int): hold
+    Returns:
+        str: fp for ClusterONE clustering file
+    """
+
+    # Grab first few columns of blastp output, effectively generating ClusterONE input
+    blast_fn = os.path.basename(blast_fp)
+    abc_fn = '{}.abc'.format(blast_fn)
+    abc_fp = os.path.join(out_p, abc_fn)
+    subprocess.check_call("awk '$1!=$2 {{print $1,$2,$11}}' {0} > {1}.abc".format(blast_fp, abc_fp), shell=True)
+
+    logger.debug("Running ClusterONE...")
+
+    cluster_one_cmd = 'java -jar {} {}.abc --input-format edge_list --output-format csv ' \
+                      '--max-overlap {} --penalty {} --haircut {}'.format(c1_bin, abc_fp, overlap, penalty, haircut)
+
+    cluster_one_fn = "{}_one_{}_{}_{}.clusters".format(blast_fn, overlap, penalty, haircut)
+    cluster_one_fp = os.path.join(out_p, cluster_one_fn)
+    cluster_one_cmd += ' > {}'.format(cluster_one_fp)
+
+    subprocess.check_call(cluster_one_cmd, shell=True)
+
+    return cluster_one_fp
+
+
+def build_clusters(fp, proteins_df, mode='ClusterONE'):
+    """
+        Load given clusters file
+
+        Args:
+            fi (str): basename of clusters file
+            proteins_df (dataframe): A dataframe giving the protein and its contig.
+            mode (str): clustering method
+        Returns:
+            tuple: dataframe of proteins, clusters, profiles and contigs
+        """
+
+    # Read MCL
+    if mode == 'ClusterONE':
+        clusters_df, name, c = load_one_clusters(fp)
+    elif mode == 'MCL':
+        clusters_df, name, c = load_mcl_clusters(fp)
+    else:
+        clusters_df, name, c = False
+        logger.error("A mode must be selected. Use ClusterONE or MCL to generate PCs.")
+
+    # Assign each prot to its cluster
+    proteins_df.set_index("protein_id", inplace=True)  # id, contig, keywords, cluster
+    for prots, clust in zip(c, name):
+        try:
+            proteins_df.loc[prots, "cluster"] = clust
+        except KeyError:
+            prots_in = [p for p in prots if p in proteins_df.index]
+            not_in = frozenset(prots) - frozenset(prots_in)
+            logger.warning("{} protein(s) without contig: {}".format(len(not_in), not_in))
+            proteins_df.loc[prots_in, "cluster"] = clust
+
+    # Keys
+    for clust, prots in proteins_df.groupby("cluster"):
+        clusters_df.loc[clust, "annotated"] = prots.keywords.count()
+        if prots.keywords.count():
+            keys = ";".join(prots.keywords.dropna().values).split(";")
+            key_count = {}
+            for k in keys:
+                k = k.strip()
+                try:
+                    key_count[k] += 1
+                except KeyError:
+                    key_count[k] = 1
+
+            clusters_df.loc[clust, "keys"] = "; ".join(["{} ({})".format(x, y) for x, y in key_count.items()])
+
+    proteins_df.reset_index(inplace=True)
+    clusters_df.reset_index(inplace=True)
+    profiles_df = proteins_df.loc[:, ["contig_id", "cluster"]].drop_duplicates()
+    profiles_df.columns = ["contig_id", "pc_id"]
+
+    contigs_df = pd.DataFrame(proteins_df.fillna(0).groupby("contig_id").count().protein_id)
+    contigs_df.index.name = "contig_id"
+    contigs_df.columns = ["proteins"]
+    contigs_df.reset_index(inplace=True)
+
+    return proteins_df, clusters_df, profiles_df, contigs_df
+
+
+def load_mcl_clusters(fi):
+    """
+    Load given clusters file
+    
+    Args:
+        fi (str): path to clusters file
+        proteins_df (dataframe): A dataframe giving the protein and its contig.
+    Returns: 
+        tuple: dataframe proteins and dataframe clusters
+    """
+    
+    # Read MCL
+    with open(fi) as f:
+        c = [line.rstrip("\n").split("\t") for line in f]
+
+    c = [x for x in c if len(c) > 1]
+    nb_clusters = len(c)
+    formatter = "PC_{{:>0{}}}".format(int(round(np.log10(nb_clusters))+1))
+    name = [formatter.format(str(i)) for i in range(nb_clusters)]
+    size = [len(i) for i in c]
+    clusters_df = pd.DataFrame({"size": size, "pc_id": name}).set_index("pc_id")
+
+    return clusters_df, name, c
+
+
+def load_one_clusters(fi):
+    """
+    Load given clusters file
+
+    Args:
+        fi (str): path to clusters file
+        proteins_df (dataframe): A dataframe giving the protein and its contig.
+    Returns:
+        tuple: dataframe proteins and dataframe clusters
+    """
+
+    fi_clusters_df = pd.read_csv(fi, header=0)
+
+    c = [line.rstrip().split() for line in fi_clusters_df['Members']]
+    c = [x for x in c if len(c) > 1]  #
+    nb_clusters = len(c)
+    formatter = "PC_{{:>0{}}}".format(int(round(np.log10(nb_clusters)) + 1))
+    name = [formatter.format(str(i)) for i in range(nb_clusters)]
+    size = [len(i) for i in c]
+
+    clusters_df = pd.DataFrame({"size": size, "pc_id": name}).set_index("pc_id")
+
+    return clusters_df, name, c
