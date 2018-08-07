@@ -148,6 +148,9 @@ vcs.add_argument('--seed-method', default='nodes', dest='vc_seed',
                  choices=['unused_nodes', 'nodes', 'edges', 'cliques'],
                  help='Specifies the seed generation method to use. (ClusterONE only)')
 
+vcs.add_argument('--optimize', dest='optimize', action='store_true',
+                 help='Optimize hierarchical distances during second-pass of the viral clusters')
+
 network = parser.add_argument_group('Similarity Network and Module Options')
 
 network.add_argument('--sig', default=1.0, type=float,
@@ -519,7 +522,7 @@ def main(args):
 
     # Add hierarchical clustering
     try:
-        vc = vcontact.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=False)
+        vc = vcontact.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=options.optimize)
     except Exception as e:
         vc = None
         logger.error("Error in viral clusters")
