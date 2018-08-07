@@ -1,0 +1,59 @@
+# Copyright (c) 2015-2016, Gregory M. Kurtzer. All rights reserved.
+# 
+# "Singularity" Copyright (c) 2016, The Regents of the University of California,
+# through Lawrence Berkeley National Laboratory (subject to receipt of any
+# required approvals from the U.S. Dept. of Energy).  All rights reserved.
+
+BootStrap: debootstrap
+OSVersion: stable
+MirrorURL: http://ftp.us.debian.org/debian/
+
+%runscript
+    exec vcontact "$@"
+
+%post
+    apt-get update && apt-get install -y automake build-essential bzip2 wget git default-jre unzip
+    
+    export BINPATH=/usr/local/bin
+    
+    # Install miniconda to save dependency nightmares
+    wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    bash Miniconda3-latest-Linux-x86_64.sh -b -f -p /usr/local/
+    rm Miniconda3-latest-Linux-x86_64.sh
+    
+    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil
+    
+    pip install setuptools-markdown
+    
+    # Install vContact
+    git clone https://bolduc@bitbucket.org/MAVERICLab/vcontact2.git
+    cd vcontact2 && pip install --no-dependencies .
+    
+    # Install MCL
+    cd / && wget http://micans.org/mcl/src/mcl-latest.tar.gz
+    tar xf mcl-latest.tar.gz && cd mcl-14-137 && ./configure --prefix /usr/local/ && make install
+    rm -rf /mcl-latest.tar.gz
+    
+    # 'Install' ClusterONE
+    cd / && wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
+    mv /cluster_one-1.0.jar $BINPATH
+    
+    # Create bash? or could adjust vContact to look at $BINPATH?
+    echo -e '#!/bin/bash\njava -jar /usr/local/bin/cluster_one-1.0.jar "$@"\n' > /usr/local/bin/cluster_one-1.0.sh
+    chmod +x $BINPATH/cluster_one-1.0.sh
+    
+    # BLAST+
+    wget --no-verbose ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
+    tar xf ncbi-blast-2.6.0+-x64-linux.tar.gz && cd ncbi-blast-2.6.0+
+    cp bin/* $BINPATH && cd / && rm -rf ncbi-blast-2.6.0+*
+    
+    # Diamond
+    wget --no-verbose http://github.com/bbuchfink/diamond/releases/download/v0.9.10/diamond-linux64.tar.gz
+    tar xf diamond-linux64.tar.gz && cp diamond $BINPATH
+    rm -rf diamond-linux64.tar.gz
+    
+    # Clean stuff up
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    
+    # TACC's Stampede compliant, for iVirus/CyVerse
+    mkdir /home1 && mkdir /scratch && mkdir /work
