@@ -194,8 +194,10 @@ ref|NP_039784.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovi
 ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovirus;Sulfolobus spindle-shaped virus 1;ORF E-96
 ```
 
+And the run command:
+
 ```
-vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db ‘None’ --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 ##### If starting with a BLASTP or Diamond results file
