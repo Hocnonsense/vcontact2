@@ -138,7 +138,7 @@ singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Dia
 Local installs
 
 ```bash
-vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db ‘None’ --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 ## Input files and formats
@@ -194,7 +194,7 @@ ref|NP_039784.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovi
 ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovirus;Sulfolobus spindle-shaped virus 1;ORF E-96
 ```
 
-```bash
+```
 vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db ‘None’ --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
@@ -217,8 +217,8 @@ NP_963972.1	NP_039777.1	44.5	236	116	5	5	230	12	242	8.8e-44	176.4
 
 Note that the example above could come from either Diamond or BLASTP!
 
-```bash
-vcontact --blast-fp [BLASTP/Diamond file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db ‘None’ --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+```
+vcontact --blast-fp [BLASTP/Diamond file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 ##### If starting with contig, PC and PC profile info files
@@ -227,7 +227,7 @@ Existing vConTACT users will recognize these are the output files from vConTACT-
 
 **pcs.csv**: File with information about each PC. The size of the PC, how many ORFs/genes were annotated, and counts these annotations for the "keywords" column.
 
-```file
+```
 pc_id,size,annotated,keys
 PC_00000,138,138.0,"UvsW RNA-DNA and DNA-DNA helicase ATPase (3); UvsW RNA-DNA and DNA-DNA helicase (2); RNA-DNA and DNA-DNA helicase (12); hypothetical protein Aes012_171 (1); hypothetical protein Aes508_160 (1); hypothetical protein CC2_292 (1); UvsW.1 conserved hypothetical protein (9); unnamed protein product (3); hypothetical protein PHG25ORF166w (1); uvsW.1 hypothetical protein (1); hypothetical protein ST44RRORF175w (1); DNA helicase (16)"
 PC_00002,115,115.0,"gp60plus39 DNA topoisomerase subunit (8); DNA topoisomerase subunit (10); topoisomerase II large subunit (20); DNA topoisomerase II large subunit (18); unnamed protein product (2); gp39plus60 DNA topoisomerase II large subunit (2); gp60plus39 (1); putative DNA topoisomerase II (1); Putative phage DNA topoisomerase (large subunit) (2); DNA topoisomerase large subunit (6); DNA topoisomerase (1)"
@@ -243,7 +243,7 @@ Note the parentheses ("") for rows that include ","
 
 **profiles.csv**: Each ORF gets assigned to a PC (unless it's a singleton, in which case it's empty) and that ORF "position" inherits the PC it was assigned.
 
-```file
+```
 contig_id,pc_id
 Sulfolobus spindle-shaped virus 1,PC_06169
 Sulfolobus spindle-shaped virus 1,PC_19100
@@ -257,7 +257,7 @@ Sulfolobus spindle-shaped virus 1,PC_06171
 
 **contigs.csv**: How many proteins are associated with each contig/genome.
 
-```file
+```
 contig_id,proteins
 Sulfolobus spindle-shaped virus 1,31
 Sulfolobus spindle-shaped virus 2,34
@@ -269,7 +269,7 @@ Sulfolobus turreted icosahedral virus 1,36
 Sulfolobus turreted icosahedral virus 2,34
 ```
 
-```bash
+```
 vcontact --contigs-fp [contig csv file] --pcs-fp [PCs csv file] --pcprofiles-fp [PC profile csv file] --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
@@ -279,7 +279,7 @@ Please note that using this method will disallow the use of reference databases.
 
 Example files are provided in the test_data/ directory. To use vConTACT2 with them, run the following command:
 
-```bash
+```
 vcontact2 --raw-proteins test_data/VIRSorter_viral_prots.faa --rel-mode ‘Diamond’ --proteins-fp test_data/proteins.csv --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir VirSorted_Outputs
 ```
 
@@ -294,6 +294,6 @@ If you find vContact useful, please cite:
 Bolduc B, Jang H Bin, Doulcier G, You Z, Roux S, Sullivan MB. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ 5: e3243.
 
 
-## Issues
+## Known Issues
 
-_profiles generating extra line for each?
+
