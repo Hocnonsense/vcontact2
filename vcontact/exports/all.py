@@ -201,7 +201,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             continue
 
         # Get VC information
-        genome_df = summary_df.loc[summary_df['Members'].str.contains(genome)]
+        genome_df = summary_df.loc[summary_df['Members'].str.contains(genome)]  # May produce byproduct (>1, below)
 
         if len(genome_df) == 0:  # When VC is 'nan'
             continue
@@ -211,12 +211,9 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                 if genome in sub_df['Members'].split(','):
                     genome_df = summary_df.loc[summary_df['Members'] == sub_df['Members']]
 
-        if len(genome_df) > 1:
-            print('Identified multiple genomes')
-            print(genome)
-            print(genome_df)
-            print('And its members')
-            pprint(genome_df['Members'].tolist())
+        # If len still >1, likely not the genome we want...
+        if len(genome_df) > 1:  # Genome name is a string SUBSET of other members, but is not identical
+            # Bacillus~virus~G vs Bacillus~virus~Glittering and Bacillus~virus~GA1
             continue
 
         genome_s = genome_df.iloc[0]
