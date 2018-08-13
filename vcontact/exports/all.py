@@ -10,6 +10,7 @@ from scipy.stats import mannwhitneyu
 from scipy.cluster.hierarchy import linkage, cophenet
 np.warnings.filterwarnings('ignore')
 
+from pprint import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
 
     num_contigs = len(node_table)
 
-    logger.info('Reading edges')
+    logger.info('Reading edges for {} contigs'.format(num_contigs))
     edges_df = pd.read_csv(network, header=None, index_col=None, delimiter=' ', names=['source', 'target', 'weight'])
 
     # Reinforce contigs with taxonomy, and sort of overlapping clusters
@@ -37,10 +38,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     predefined = ['order', 'family', 'subfamily', 'genus']
     levels = [column for column in contigs.columns if column in predefined]
 
-    if not levels:
-        pass
-
-    node_table[levels] = node_table[levels].fillna('unassigned')
+    if levels:
+        node_table[levels] = node_table[levels].fillna('Unassigned')
 
     # Build PC array
     logger.info('Building PC array')
@@ -80,10 +79,15 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             cohesiveness = 0
 
         # Taxonomies
-        taxonomies = {}
-        for level in levels:
-            values = [item for item in contig_cluster_group[level].unique() if not pd.isnull(item)]
-            taxonomies[level] = values
+        taxonomies = {
+            'order': [],
+            'family': [],
+            'genus': []
+        }
+        if levels:
+            for level in levels:
+                values = [item for item in contig_cluster_group[level].unique() if not pd.isnull(item)]
+                taxonomies[level] = values
 
         vc_pc_df = profiles_df.loc[profiles_df['contig_id'].isin([contig.replace('~', ' ') for contig in cluster_contigs])].copy()
 
@@ -105,7 +109,6 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
         thres_counts = dist[dist < viral_clusters.dist].size  # np.where(dist < 8)
         frac = float(thres_counts) / dist.size
 
-
         # Get internals
         intracluster_selected_edges = edges_df[
             (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))].copy()
@@ -121,11 +124,11 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                                                                                             intracluster_selected_edges[
                                                                                                 'source'])
 
-        df = intracluster_selected_edges.drop_duplicates(subset=['weight', 'first', 'second'])
-        df.drop(columns=['first', 'second'], inplace=True)
+        intra_df = intracluster_selected_edges.drop_duplicates(subset=['weight', 'first', 'second'])
+        intra_df.drop(columns=['first', 'second'], inplace=True)
 
         # Once duplicates are removed, get simple list of weights and determine stats
-        internal_scores = df['weight'].tolist()
+        internal_scores = intra_df['weight'].tolist()
         internal_weights = sum(internal_scores)
 
         extracluster_selected_edges = edges_df[
@@ -142,10 +145,10 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                                                                                             extracluster_selected_edges[
                                                                                                 'source'])
 
-        df2 = extracluster_selected_edges.drop_duplicates(subset=['weight', 'first', 'second'])
-        df2.drop(columns=['first', 'second'], inplace=True)
+        extra_df = extracluster_selected_edges.drop_duplicates(subset=['weight', 'first', 'second'])
+        extra_df.drop(columns=['first', 'second'], inplace=True)
 
-        external_scores = df2['weight'].tolist()
+        external_scores = extra_df['weight'].tolist()
         external_weights = sum(external_scores)
 
         internal_scores = sorted(internal_scores)
@@ -168,7 +171,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                                                      len(taxonomies['family']), len(taxonomies['order']),\
                                                      ','.join(cluster_contigs)
         except Exception as e:
-            print(e)
+            logger.error(e)
             exit(1)
 
     summary_df.to_csv(os.path.join(folder, 'summary_df.csv'))
@@ -183,14 +186,14 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                     'Genera in VC', 'Families in VC', 'Orders in VC', 'Genus Confidence Score']
     node_summary_df = pd.DataFrame(columns=node_columns)
 
-    # BLAH
+    # Iterate through final table to summary everything
     for index, vc_df in node_table.iterrows():
 
         genome = vc_df['contig_id']
-        # host = vc_df['Host']
-        order = vc_df['order']
-        family = vc_df['family']
-        genus = vc_df['genus']
+        host = vc_df['Host'] if 'Host' in vc_df else 'Unknown'
+        order = vc_df['order'] if 'order' in vc_df else 'Unassigned'
+        family = vc_df['family'] if 'family' in vc_df else 'Unassigned'
+        genus = vc_df['genus'] if 'genus' in vc_df else 'Unassigned'
         vc = vc_df['Viral Cluster']
 
         if pd.isnull(vc):
@@ -210,6 +213,10 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
 
         if len(genome_df) > 1:
             print('Identified multiple genomes')
+            print(genome)
+            print(genome_df)
+            print('And its members')
+            pprint(genome_df['Members'].tolist())
             continue
 
         genome_s = genome_df.iloc[0]
@@ -231,11 +238,9 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
         genus_conf = False
         genus_dist = False
         if genus_df.empty:
-            # genus_dist = np.nan
             genus_conf = vc_conf
         else:
             genus_s = genus_df.iloc[0]
-            # genus_dist = genus_s['Avg Dist']
             genus_conf = genus_s['Confidence']
 
         try:
@@ -244,7 +249,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
                                                      vc_overall_conf, vc_genera, vc_families, vc_orders, \
                                                      genus_conf
         except Exception as e:
-            print('EERRRRRR', e)
+            logger.error(e)
             exit(1)
 
     node_summary_df['Quality'] = node_summary_df['Quality'].apply(lambda x: round(x, 4))
@@ -253,4 +258,3 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     node_summary_df['Topology Confidence Score'] = node_summary_df['Topology Confidence Score'].apply(lambda x: round(x, 4))
 
     node_summary_df.to_csv(os.path.join(folder, 'node_table_summary.csv'))
-
