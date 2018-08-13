@@ -254,7 +254,7 @@ def main(args):
 
     # Merge potential reference databases to source
     db_root = pkg_resources.resource_filename('vcontact', 'data/')
-    print(db_root)
+
     ref_dbs = {
         'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
         'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
@@ -607,7 +607,7 @@ def main(args):
 
     # Final summary output
     try:
-        vcontact.exports.all.final_summary(output_dir, gc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
+        vcontact.exports.all.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
                                            profiles_fp, vc)
     except Exception as e:
         logger.error("Error in exporting the final summary data: {}".format(e))
