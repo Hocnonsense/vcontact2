@@ -140,3 +140,6 @@ class ViralClusters(object):
 
         self.performance = pd.DataFrame.from_dict(vcontact.evaluations.Evaluations(
             self.contigs, focus='rev_pos_cluster').tax_metrics, orient='index')
+
+        logger.info(self.performance)
+
