@@ -56,7 +56,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     logT = np.log10(T)
 
     for contig_cluster, contig_cluster_group in node_table.groupby(by='rev_pos_cluster'):
-        logger.info('Processing viral cluster {}'.format(contig_cluster))
+        logger.debug('Processing viral cluster {}'.format(contig_cluster))
 
         size = len(contig_cluster_group)
 
@@ -101,7 +101,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             continue  # Empty distance matrix - occurs when overlapping members leaves a cluster w/ 1 member
 
         c, coph_dists = cophenet(row_linkage, dist)
-        logger.info('Cophenet distance: {}'.format(c))
+        logger.debug('Cophenet distance: {}'.format(c))
 
         average_dist = dist.mean()
         min_dist = dist.min()  # np.min(dist[np.nonzero(dist)])  # Still want zeroes
