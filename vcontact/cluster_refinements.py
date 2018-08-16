@@ -117,22 +117,22 @@ class ViralClusters(object):
         self.best_df = self.metrics.loc[self.metrics['Composite Score'] == self.best_score]
 
         if len(self.best_df) == 1:
-            self.dist = self.best_df.index.tolist()[0]
+            self.dist = self.best_df.iloc[0]['Distance']
             logger.info('Identified a single best composite score {} for distance {}'.format(
                 self.best_score, self.dist))
 
         if len(self.best_df) == 2:
-            best_index = self.best_df.index.tolist()
+            best_index = self.best_df['Distance'].tolist()
             logger.info('Identified the best composite scores among two distances, '
                         'selecting the larger distance: {}'.format(','.join(best_index)))
-            self.dist = best_index[-1]
+            self.dist = self.best_df.iloc[best_index[-1]]['Distance']
 
         if len(self.best_df) > 2:
-            best_index = self.best_df.index.tolist()
+            best_index = self.best_df['Distance'].tolist()
             logger.warning('Identified best composite scores among multiple distances! Optimal distance may not be '
                            'calculated correctly due to a small sample size, heterogeneity in the data, or some '
                            'issue with the dataset. Selecting the largest distance: {}'.format(','.join([str(i) for i in best_index])))
-            self.dist = best_index[-1]
+            self.dist = self.best_df.iloc[best_index[-1]]['Distance']
 
         logger.info('Merging optimal distance determined from performance evaluations.')
 
