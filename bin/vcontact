@@ -371,13 +371,14 @@ def main(args):
                 proteins_df = pd.read_csv(proteins_fn, sep='\t', header=0)
             else:
                 proteins_df = False
-                logger.error("Unable to identify the file format for the proteins file {}. Does it end with the extension "
-                             "*.tsv or *.csv?".format(os.path.basename(proteins_fn)))
+                logger.error("Unable to identify the file format for the proteins file {}. Does it end with the "
+                             "extension *.tsv or *.csv?".format(os.path.basename(proteins_fn)))
 
         logger.debug("Read {} proteins from {}.".format(len(proteins_df), args.proteins_fn))
 
         pcs_mode = args.pcs_mode
-        pc_overlap, pc_penalty, pc_haircut, pc_inflation = args.pc_overlap, args.pc_penalty, args.pc_haircut, args.pc_inflation
+        pc_overlap, pc_penalty, pc_haircut, pc_inflation = args.pc_overlap, args.pc_penalty, args.pc_haircut,\
+                                                           args.pc_inflation
 
         blast_fn = os.path.basename(blast_fp)
         if pcs_mode == 'ClusterONE':
@@ -458,7 +459,7 @@ def main(args):
         ref_df['origin'] = 'RefSeq-85'
 
         ref_tax = ref_df[['Organism/Name', 'origin', 'order', 'family', 'genus']]
-        ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')
+        ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')  # Ensure c1 can process names
 
         merged_df = contigs_csv_df.merge(ref_tax, how='left', left_on='contig_id', right_on='Organism/Name')
         merged_df.drop('Organism/Name', axis='columns', inplace=True)
@@ -614,5 +615,5 @@ def main(args):
 
 
 if __name__ == "__main__":
-    print("\n{:=^80}\n".format("This is vcontact {}".format(vcontact.__version__)))
+    print("\n{:=^80}\n".format("This is vConTACT {}".format(vcontact.__version__)))
     main(options)
