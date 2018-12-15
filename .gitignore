@@ -75,5 +75,8 @@ build/
 Databases/
 benchmarks/
 manuscripts/
+vConTACT_contigs.csv
+vConTACT_pcs.csv
+vConTACT_profiles.csv
 
 dist/
