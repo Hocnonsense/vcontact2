@@ -149,7 +149,7 @@ vConTACT2 tries to alleviate some of the challenges created by the complex file 
 
 The only required files are:
 
- 1. A FASTA-formatted amino acid file.
+1. A FASTA-formatted amino acid file.
 
 ```
  >ref|NP_039777.1| ORF B-251 [Sulfolobus spindle-shaped virus 1]
@@ -164,7 +164,7 @@ The only required files are:
  AKDYINAISKPYKETRDAQKAYRLFARFLASRNIIHDEFADKILKAVKVKKANADIYIPT
  ```
 
- 2. A "gene-to-genome" mapping file, in either \*.tsv (tab) or \*.csv (comma) separated format.
+2. A "gene-to-genome" mapping file, in either tsv (tab)- or csv (comma)-separated format.
 
 ```
 protein_id,contig_id,keywords
@@ -179,7 +179,7 @@ ref|NP_039784.1|,Sulfolobus spindle-shaped virus 1,ORF E-51
 ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,ORF E-96
 ```
 
- * [Alternatively] Multiple keywords must be separated using ";":
+[Alternatively] Multiple keywords must be separated using ";":
 
 ```
 protein_id,contig_id,keywords
