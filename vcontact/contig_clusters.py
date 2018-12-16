@@ -34,8 +34,8 @@ class ContigCluster(object):
             mcl_results: (list of list) mcl_result[cluster][prot]
     """
     
-    def __init__(self, profiles, folder, cluster_one, one_args, inflation=2, threshold=None, name=None, membership_simple=False,
-                 mode='MCL'):
+    def __init__(self, profiles, folder, cluster_one, one_args, inflation=2, threshold=None, name=None,
+                 membership_simple=False, mode='MCL'):
         """
         Init the object with a pc-profile object and perform the clustering
 
@@ -208,6 +208,8 @@ class ContigCluster(object):
         if not os.path.exists(fi_clusters) or force:
 
             cluster_one_cmd = 'java -jar {} {} --input-format edge_list --output-format csv --fluff'.format(cluster_one, fi_ntw)
+
+            print(cluster_one_cmd)
 
             for opt, val in options.items():
                 cluster_one_cmd += ' {} {}'.format(opt, val)

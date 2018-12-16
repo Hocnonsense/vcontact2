@@ -174,7 +174,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             logger.error(e)
             exit(1)
 
-    summary_df.to_csv(os.path.join(folder, 'summary_df.csv'))
+    summary_df.to_csv(os.path.join(folder, 'viral_cluster_overview.csv'))
 
     node_table['Viral Cluster'] = node_table['rev_pos_cluster'].astype(str)
 
@@ -254,4 +254,4 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     node_summary_df['Genus Confidence Score'] = node_summary_df['Genus Confidence Score'].apply(lambda x: round(x, 4))
     node_summary_df['Topology Confidence Score'] = node_summary_df['Topology Confidence Score'].apply(lambda x: round(x, 4))
 
-    node_summary_df.to_csv(os.path.join(folder, 'node_table_summary.csv'))
+    node_summary_df.to_csv(os.path.join(folder, 'genome_by_genome_overview.csv'))

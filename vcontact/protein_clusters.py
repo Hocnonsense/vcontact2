@@ -35,6 +35,11 @@ def merge_aa(user_aa_fp, ref_db_fp, merged_aa_fp):
 
 def make_blast_db(aa_fp):
 
+    """
+    :param aa_fp: Amino acid fasta file file path
+    :return: Output database file path
+    """
+
     out_db = '{}.db'.format(aa_fp.rsplit('.', 1)[0])
     makeblastcmd = 'makeblastdb -in {} -input_type fasta -dbtype prot -hash_index -out {}'.format(aa_fp, out_db)
 
@@ -44,7 +49,15 @@ def make_blast_db(aa_fp):
     return out_db
 
 
-def run_blastp(aa_fp, db_fp, evalue, cpu, blastp_out_fp):
+def run_blastp(aa_fp, db_fp, evalue: float, cpu: int, blastp_out_fp):
+    """
+    :param aa_fp: File path for amino acid fast file
+    :param db_fp: BLAST database file path
+    :param evalue:
+    :param cpu:
+    :param blastp_out_fp:
+    :return:
+    """
 
     blastp_cmd = 'blastp -task blastp -query {} -db {} -out {} -evalue {} -outfmt 6 -num_threads {}'.format(
         aa_fp, db_fp, blastp_out_fp, evalue, cpu)
@@ -55,7 +68,7 @@ def run_blastp(aa_fp, db_fp, evalue, cpu, blastp_out_fp):
     return blastp_out_fp
 
 
-def make_diamond_db(aa_fp, db_dir, cpu):
+def make_diamond_db(aa_fp, db_dir, cpu: int):
 
     diamond_db_bp = os.path.join(db_dir, os.path.basename(aa_fp).rsplit('.', 1)[0])
     make_diamond_cmd = 'diamond makedb --threads {} --in {} -d {}'.format(cpu, aa_fp, diamond_db_bp)
@@ -68,7 +81,7 @@ def make_diamond_db(aa_fp, db_dir, cpu):
     return diamond_db_fp
 
 
-def run_diamond(aa_fp, db_fp, cpu, diamond_out_fn):
+def run_diamond(aa_fp, db_fp, cpu: int, diamond_out_fn):
 
     # More sensitive as an option?
     diamond_cmd = 'diamond blastp --threads {} --sensitive -d {} -q {} -o {}'.format(
@@ -83,9 +96,9 @@ def run_diamond(aa_fp, db_fp, cpu, diamond_out_fn):
 def make_protein_clusters_mcl(blast_fp, out_p, inflation=2):
     """
     Args: 
-        blast_fi (str): Blast results file
-        inflation (float): MCL's inflation
-        out_p (str): output directory path
+        blast_fp (str): Path to blast results file
+        inflation (float): MCL inflation value
+        out_p (str): Output directory path
     Returns:
         str: fp for MCL clustering file
     """
@@ -115,10 +128,10 @@ def make_protein_clusters_mcl(blast_fp, out_p, inflation=2):
     return mcl_clstr_fp
 
 
-def make_protein_clusters_one(blast_fp, c1_bin, out_p, overlap, penalty, haircut):
+def make_protein_clusters_one(blast_fp, c1_bin, out_p, overlap: float, penalty: float, haircut: float):
     """
-    Args:x
-        blast_fi (str): Blast results file
+    Args:
+        blast_fp (str): Blast results file
         out_p (str): output directory path
         overlap (int): hold
         penalty (int): hold
@@ -147,13 +160,13 @@ def make_protein_clusters_one(blast_fp, c1_bin, out_p, overlap, penalty, haircut
     return cluster_one_fp
 
 
-def build_clusters(fp, proteins_df, mode='ClusterONE'):
+def build_clusters(fp, gene2genome, mode='ClusterONE'):
     """
-        Load given clusters file
+        Build clusters given clusters file
 
         Args:
-            fi (str): basename of clusters file
-            proteins_df (dataframe): A dataframe giving the protein and its contig.
+            fp (str): filepath of clusters file
+            gene2genome (dataframe): A dataframe giving the protein and its genome.
             mode (str): clustering method
         Returns:
             tuple: dataframe of proteins, clusters, profiles and contigs
@@ -169,18 +182,18 @@ def build_clusters(fp, proteins_df, mode='ClusterONE'):
         logger.error("A mode must be selected. Use ClusterONE or MCL to generate PCs.")
 
     # Assign each prot to its cluster
-    proteins_df.set_index("protein_id", inplace=True)  # id, contig, keywords, cluster
+    gene2genome.set_index("protein_id", inplace=True)  # id, contig, keywords, cluster
     for prots, clust in zip(c, name):
         try:
-            proteins_df.loc[prots, "cluster"] = clust
+            gene2genome.loc[prots, "cluster"] = clust
         except KeyError:
-            prots_in = [p for p in prots if p in proteins_df.index]
+            prots_in = [p for p in prots if p in gene2genome.index]
             not_in = frozenset(prots) - frozenset(prots_in)
             logger.warning("{} protein(s) without contig: {}".format(len(not_in), not_in))
-            proteins_df.loc[prots_in, "cluster"] = clust
+            gene2genome.loc[prots_in, "cluster"] = clust
 
     # Keys
-    for clust, prots in proteins_df.groupby("cluster"):
+    for clust, prots in gene2genome.groupby("cluster"):
         clusters_df.loc[clust, "annotated"] = prots.keywords.count()
         if prots.keywords.count():
             keys = ";".join(prots.keywords.dropna().values).split(";")
@@ -194,20 +207,21 @@ def build_clusters(fp, proteins_df, mode='ClusterONE'):
 
             clusters_df.loc[clust, "keys"] = "; ".join(["{} ({})".format(x, y) for x, y in key_count.items()])
 
-    proteins_df.reset_index(inplace=True)
+    gene2genome.reset_index(inplace=True)
     clusters_df.reset_index(inplace=True)
-    profiles_df = proteins_df.loc[:, ["contig_id", "cluster"]].drop_duplicates()
+    profiles_df = gene2genome.loc[:, ["contig_id", "cluster"]].drop_duplicates()
     profiles_df.columns = ["contig_id", "pc_id"]
 
-    contigs_df = pd.DataFrame(proteins_df.fillna(0).groupby("contig_id").count().protein_id)
+    contigs_df = pd.DataFrame(gene2genome.fillna(0).groupby("contig_id").count().protein_id)
     contigs_df.index.name = "contig_id"
     contigs_df.columns = ["proteins"]
     contigs_df.reset_index(inplace=True)
 
-    return proteins_df, clusters_df, profiles_df, contigs_df
+    return gene2genome, clusters_df, profiles_df, contigs_df
 
 
 def load_mcl_clusters(fi):
+
     """
     Load given clusters file
     

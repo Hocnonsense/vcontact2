@@ -24,16 +24,14 @@ import vcontact.protein_clusters
 import vcontact.loader
 import vcontact.pcprofiles
 import vcontact.contig_clusters
+import vcontact.evaluations
+import vcontact.cluster_refinements
 import vcontact.modules
 import vcontact.exports.csv
 import vcontact.exports.krona
 import vcontact.exports.cytoscape
 import vcontact.exports.profiles
-import vcontact.exports.all
-import vcontact.evaluations
-import vcontact.cluster_refinements
-
-from pprint import pprint
+import vcontact.exports.summaries
 
 
 # Argparse multiple inheritance
@@ -49,26 +47,30 @@ inputs.add_argument('-r', '--raw-proteins', type=str, dest='raw_proteins',
                     help='FASTA-formatted proteins file. If provided alongside --proteins-fn, vConTACT will start prior'
                          ' to PC generation.')
 
-inputs.add_argument('--rel-mode', type=str, choices=['BLASTP', 'Diamond', 'MMSeqs2'], default='Diamond', dest='rel_mode',
-                    help='What method to use in order to create the protein-protein similarity edge file. This is what the PCs-method is applied on.')
+inputs.add_argument('--rel-mode', type=str, choices=['BLASTP', 'Diamond', 'MMSeqs2'], default='Diamond',
+                    dest='rel_mode', help='Method to use to create the protein-protein similarity edge file. This '
+                                          'is what the PC clustering is applied against.')
 
 inputs.add_argument('-b', '--blast-fp', type=str, dest='blast_fp',
-                    help='Blast results file in CSV or TSV format. Used for generating the profiles. If provided '
-                         'alongside --proteins-fn, vConTACT will start from the PC-generation step. If raw proteins '
-                         'are provided, THIS WILL BE SKIPPED. Reference DBs CANNOT BE USED IF THIS OPTION IS ENABLED!!')
+                    help='Blast results file in CSV or TSV format. Used for generating the protein clusters. If '
+                         'provided alongside --proteins-fn, vConTACT will start from the PC-generation step. If raw '
+                         'proteins are provided, THIS WILL BE SKIPPED. Reference DBs CANNOT BE USED IF THIS OPTION '
+                         'IS ENABLED!!')
 
-inputs.add_argument('-p', '--proteins-fp', type=str, dest='proteins_fn',
-                    help='A file linking the protein name (as in the blast file) and the contigs names (csv or tsv).'
+inputs.add_argument('-p', '--proteins-fp', type=str, dest='proteins_fp',
+                    help='A file linking the protein name (as in the blast file) and the genome names (csv or tsv).'
                          ' If provided alongside --blast-fp, vConTACT will start from the PC-generation step. If '
                          'provided alongside --raw-proteins, vConTACT will start from creating the all-verses-all '
-                         'protein comparison and then generate PCs.')
+                         'protein comparison and then generate protein clusters.')
 
 inputs.add_argument('--db', type=str,
-                    choices=['None', 'ProkaryoticViralRefSeq85-ICTV', 'ProkaryoticViralRefSeq85-Merged', 'ArchaeaViralRefSeq85-Merged'],
+                    choices=['None',
+                             'ProkaryoticViralRefSeq85-ICTV',
+                             'ProkaryoticViralRefSeq85-Merged',
+                             'ArchaeaViralRefSeq85-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
-                         'aware that there will be no references included in the analysis, unless, of course, the '
-                         '--raw-proteins provided include them.')
+                         'aware that there will be no references included in the analysis.')
 
 inputs.add_argument('--pcs-mode', type=str, choices=['ClusterONE', 'MCL'], default='MCL', dest='pcs_mode',
                     help='Whether to use ClusterONE or MCL for Protein Cluster (PC) generation.')
@@ -101,7 +103,7 @@ pcs.add_argument('--blast-evalue', default='0.0001', type=float, dest='evalue',
 pcs.add_argument('--max-overlap', default=0.8, type=float, dest='pc_overlap',
                  help='Specifies the maximum allowed overlap between two clusters. (ClusterONE only)')
 
-pcs.add_argument('--penalty', default=2.0, type=int, dest='pc_penalty',
+pcs.add_argument('--penalty', default=2.0, type=float, dest='pc_penalty',
                  help='Sets a penalty value for the inclusion of each node. It can be used to model the possibility of '
                       'uncharted connections for each node, so nodes with only a single weak connection to a cluster '
                       'will not be added to the cluster as the penalty value will outweigh the benefits of adding the '
@@ -181,13 +183,13 @@ network.add_argument('--link-prop', default=0.5, type=float, dest='link_prop',
 outputs = parser.add_argument_group('Output Options')
 
 outputs.add_argument('-e','--exports', nargs="*", default=["csv"],
-                      help='Export backend. Suported values are "csv", "krona" and "cytoscape"')
+                     help='Export backend. Suported values are "csv", "krona" and "cytoscape"')
 
 outputs.add_argument('--cluster-filter', nargs="*", default=[0],
-                      help='Id of the clusters to export (Cytoscape export only).')
+                     help='Id of the clusters to export (Cytoscape export only).')
 
 outputs.add_argument('--criterion', default="predicted_family",
-                      help='Pooling criterion for cluster export (Cytoscape export only).')
+                     help='Pooling criterion for cluster export (Cytoscape export only).')
 
 legacy = parser.add_argument_group('Legacy Options')
 
@@ -196,14 +198,14 @@ legacy.add_argument('--contigs', type=str, dest='contigs', help='Contig info fil
 legacy.add_argument('--pcs', type=str, dest='pcs', help='Protein clusters info file (tsv or csv)')
 
 legacy.add_argument('--pc-profiles', type=str, dest='pcprofiles',
-                        help='Protein cluster profiles of the contigs (tsv or csv)')
+                    help='Protein cluster profiles of the contigs (tsv or csv)')
 
 misc = parser.add_argument_group('Misc. Options')
 
-misc.add_argument('-v','--verbose', action="count", default=-1,
-                       help='Verbosity level : -v warning, -vv info, -vvv debug, (default debug)')
+misc.add_argument('-v', '--verbose', action="count", default=-2,
+                  help='Verbosity level : -v warning, -vv info, -vvv debug, (default info)')
 
-misc.add_argument('-f','--force-overwrite', action="store_true", help='Overwrite existing files')
+misc.add_argument('-f', '--force-overwrite', action="store_true", help='Overwrite existing files')
 
 options = parser.parse_args()
 
@@ -214,10 +216,10 @@ logging.addLevelName(logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevel
 logging.addLevelName(logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.ERROR))
 logging.addLevelName(logging.INFO, "\033[1;42m%s\033[1;0m" % logging.getLevelName(logging.INFO))
 logging.addLevelName(logging.DEBUG, "\033[1;43m%s\033[1;0m" % logging.getLevelName(logging.DEBUG))
-logging.getLogger().addFilter(logging.Filter("vcontact"))
+logging.getLogger().addFilter(logging.Filter("vcontact2"))
 
 # create logger with 'spam_application'
-logger = logging.getLogger('vcontact')
+logger = logging.getLogger('vcontact2')
 logger.setLevel(log_levels[options.verbose])
 ch = logging.StreamHandler()
 ch.setLevel(log_levels[options.verbose])
@@ -231,16 +233,38 @@ def main(args):
     # pre-run BLASTP (as is used with vConTACT-PCs. Otherwise the user would need to re-BLAST everything with the DB.
 
     # In essence, by allowing the opportunity to use "raw proteins" and have vConTACT handle everything, the
-    # functionality provided by vConTACT-PCs is nullified.
+    # functionality provided by vConTACT-PCs is eliminated.
 
     # Checks
-    if 'ClusterONE' in (args.pcs_mode or args.vc_mode):
-        if shutil.which(args.cluster_one) is None:
-            logger.error("Could not find ClusterONE java file.")
+    cluster_one_fp = args.cluster_one
+    if not cluster_one_fp:
+        if ('ClusterONE' in args.pcs_mode) or ('ClusterONE' in args.vc_mode):
+            if shutil.which('cluster_one-1.0.jar') is None:
+                logger.error("Could not find ClusterONE java file.")
+            else:
+                cluster_one_fp = shutil.which('cluster_one-1.0.jar')
 
     if 'MCL' in (args.pcs_mode or args.vc_mode):
         if shutil.which('mcxload') is None:
             logger.error("Could not find MCL (specifically mcxload) in $PATH.")
+        else:
+            logger.info('Found MCL: {}'.format(shutil.which('mcxload')))
+
+    if args.rel_mode == 'Diamond':
+        if shutil.which('diamond') is None:
+            logger.error("Could not find Diamond in $PATH.")
+        else:
+            logger.info('Found Diamond: {}'.format(shutil.which('diamond')))
+
+    if args.rel_mode == 'BLASTP':
+        if shutil.which('blastp') is None:
+            logger.error("Could not find BLASTp in $PATH.")
+        else:
+            logger.info('Found BLASTP: {}'.format(shutil.which('blastp')))
+
+    # Global
+    cpus = args.threads
+    logger.info('Identified {} CPUs'.format(cpus))
 
     # Prepare output directory
     output_dir = args.output_dir
@@ -261,9 +285,6 @@ def main(args):
         'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.faa.gz')
     }
 
-    # Global
-    cpus = args.threads
-
     # Refactor for later?
     # Check if exists
     if args.contigs and args.pcs and args.pcprofiles:
@@ -280,18 +301,19 @@ def main(args):
     else:
 
         if args.db != 'None':
-            merged_aa_fp = os.path.join(output_dir, 'merged.faa')  # There's a better way of checking this from the function
+            merged_aa_fp = os.path.join(output_dir, 'merged.faa')
 
             if not os.path.exists(merged_aa_fp):
                 logger.info("Merging {} to user sequences...".format(args.db))
                 proteins_aa_fp = vcontact.protein_clusters.merge_aa(args.raw_proteins, ref_dbs[args.db], merged_aa_fp)
             else:
+                logger.info("Identified existing 'merged.faa' in output path: re-using...".format(args.db))
                 proteins_aa_fp = merged_aa_fp
 
         else:
             proteins_aa_fp = args.raw_proteins
 
-        blast_fp = False
+        similarity_fp = False
         if args.raw_proteins:
 
             if args.rel_mode == 'BLASTP':
@@ -302,9 +324,11 @@ def main(args):
                 if not os.path.exists(blastp_out_fn):
                     logger.info("Creating BLAST database and running BLASTP...")
                     db_fp = vcontact.protein_clusters.make_blast_db(proteins_aa_fp)
-                    blast_fp = vcontact.protein_clusters.run_blastp(proteins_aa_fp, db_fp, args.evalue, cpus, blastp_out_fp)
+                    similarity_fp = vcontact.protein_clusters.run_blastp(proteins_aa_fp, db_fp, args.evalue, cpus,
+                                                                         blastp_out_fp)
                 else:
-                    blast_fp = blastp_out_fn
+                    logger.info("Re-using existing BLASTP file...")
+                    similarity_fp = blastp_out_fp
 
             elif args.rel_mode == 'Diamond':
 
@@ -315,9 +339,10 @@ def main(args):
 
                     logger.info("Creating Diamond database and running Diamond...")
                     db_fp = vcontact.protein_clusters.make_diamond_db(proteins_aa_fp, output_dir, cpus)
-                    blast_fp = vcontact.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, diamond_out_fp)
+                    similarity_fp = vcontact.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, diamond_out_fp)
                 else:
-                    blast_fp = diamond_out_fp
+                    logger.info("Re-using existing Diamond file...")
+                    similarity_fp = diamond_out_fp
 
             else:
                 logger.error("Unable to identify which method to use for generating protein-protein similarities.")
@@ -325,20 +350,19 @@ def main(args):
         # If they don't have raw proteins but did provide a BLASTP file
         elif (not args.raw_proteins) and args.blast_fp:
             logger.info("User provided BLASTp file...".format(args.db))
-            blast_fp = args.blast_fp
+            similarity_fp = args.blast_fp
         else:
             logger.error("User did not provide a proteins file (amino acid fasta file) OR a BLASTp file. One must be "
                          "provided")
 
         # Did somehow things get to this point?
-        if not blast_fp:
+        if not similarity_fp:
             logger.error("No similarity file identified?")
 
         print("\n\n" + "{:-^80}".format("Protein clustering"))
 
         # Load the proteins <-> contigs associations...
         # Should there be a "joining databases" block or just separate? (as in this case)
-        # ['None', 'ViralRefSeq81', 'ProkaryoticViralRefSeq81', 'ArchaealViralRefSeq81', 'ViralRefSeq81_and_GOV'],
         logger.info("Loading proteins...")
         ref_g2c = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
@@ -346,45 +370,45 @@ def main(args):
             'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.protein2contig.csv')
         }
 
-        proteins_fn = args.proteins_fn
+        usr_gene2genome_fp = args.proteins_fp
+        gene2genome_fp = args.proteins_fp
         if args.db != 'None':
-            logger.info("Merging {} to user gene-to-contig mapping...".format(args.db))
+            logger.info("Merging {} to user gene-to-genome mapping...".format(args.db))
             # Pull out into function?
-            pre_proteins_df = False
-            if os.path.basename(proteins_fn).endswith('.csv'):
-                pre_proteins_df = pd.read_csv(proteins_fn, sep=',', header=0)
-            elif os.path.basename(proteins_fn).endswith('.tsv'):
-                pre_proteins_df = pd.read_csv(proteins_fn, sep=',', header=0)
+            if os.path.basename(usr_gene2genome_fp).endswith('.csv'):
+                usr_gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep=',', header=0)
+            elif os.path.basename(usr_gene2genome_fp).endswith('.tsv'):
+                usr_gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep='\t', header=0)
             else:
-                logger.error("Unable to identify file format for proteins file {}.".format(os.path.basename(proteins_fn)))
+                usr_gene2genome_df = False
+                logger.error("Unable to identify file format for {}.".format(os.path.basename(gene2genome_fp)))
 
             ref_proteins_df = pd.read_csv(ref_g2c[args.db], sep=',', header=0)
-            ref_proteins_df.to_csv(os.path.join(output_dir, 'ref_proteins_df.csv'))
+            # ref_proteins_df.to_csv(os.path.join(output_dir, 'ref_proteins_df.csv'))
 
-            proteins_df = pd.concat([pre_proteins_df, ref_proteins_df])
-            proteins_df.to_csv(os.path.join(output_dir, 'proteins_df.csv'))
+            gene2genome_df = pd.concat([usr_gene2genome_df, ref_proteins_df])
 
         else:
-            if os.path.basename(proteins_fn).endswith('.csv'):
-                proteins_df = pd.read_csv(proteins_fn, sep=',', header=0)  # Don't rely on pandas to identify correct delim
-            elif os.path.basename(proteins_fn).endswith('.tsv'):
-                proteins_df = pd.read_csv(proteins_fn, sep='\t', header=0)
+            if os.path.basename(usr_gene2genome_fp).endswith('.csv'):
+                gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep=',', header=0)  # Don't rely on pandas identify delim
+            elif os.path.basename(usr_gene2genome_fp).endswith('.tsv'):
+                gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep='\t', header=0)
             else:
-                proteins_df = False
-                logger.error("Unable to identify the file format for the proteins file {}. Does it end with the "
-                             "extension *.tsv or *.csv?".format(os.path.basename(proteins_fn)))
+                gene2genome_df = False
+                logger.error("Unable to identify the file format for the gene-to-genome file {}. Does it end with the "
+                             "extension *.tsv or *.csv?".format(os.path.basename(usr_gene2genome_fp)))
 
-        logger.debug("Read {} proteins from {}.".format(len(proteins_df), args.proteins_fn))
+        logger.debug("Read {} proteins from {}.".format(len(gene2genome_df), args.proteins_fp))
 
         pcs_mode = args.pcs_mode
         pc_overlap, pc_penalty, pc_haircut, pc_inflation = args.pc_overlap, args.pc_penalty, args.pc_haircut,\
                                                            args.pc_inflation
 
-        blast_fn = os.path.basename(blast_fp)
+        similarity_fn = os.path.basename(similarity_fp)
         if pcs_mode == 'ClusterONE':
-            pcs_fn = "{}_c1_{}_{}_{}.clusters".format(blast_fn, pc_overlap, pc_penalty, pc_haircut)
+            pcs_fn = "{}_c1_{}_{}_{}.clusters".format(similarity_fn, pc_overlap, pc_penalty, pc_haircut)
         elif pcs_mode == 'MCL':
-            pcs_fn = "{}_mcl{}.clusters".format(blast_fn, int(pc_inflation * 10))
+            pcs_fn = "{}_mcl{}.clusters".format(similarity_fn, int(pc_inflation * 10))
         else:
             pcs_fn = False
             logger.error("A mode must be selected. Use ClusterONE or MCL to generate PCs.")
@@ -392,9 +416,9 @@ def main(args):
         # Run clustering tool on the blast results...
 
         if (pcs_mode == 'MCL') and (not os.path.exists(pcs_fn) or args.force_overwrite):
-            pcs_fp = vcontact.protein_clusters.make_protein_clusters_mcl(blast_fp, output_dir, args.pc_inflation)
+            pcs_fp = vcontact.protein_clusters.make_protein_clusters_mcl(similarity_fp, output_dir, args.pc_inflation)
         elif (pcs_mode == 'ClusterONE') and (not os.path.exists(pcs_fn) or args.force_overwrite):
-            pcs_fp = vcontact.protein_clusters.make_protein_clusters_one(blast_fp, args.cluster_one, output_dir,
+            pcs_fp = vcontact.protein_clusters.make_protein_clusters_one(similarity_fp, cluster_one_fp, output_dir,
                                                                          args.pc_overlap, args.pc_penalty, args.pc_haircut)
         else:
             pcs_fp = False
@@ -403,7 +427,7 @@ def main(args):
         # Load the clusters...
         logger.info("Loading the clusters (this may take some time...)")
         protein_df, clusters_df, profiles_df, contigs_df = vcontact.protein_clusters.build_clusters(
-            pcs_fp, proteins_df, pcs_mode)
+            pcs_fp, gene2genome_df, pcs_mode)
         # protein_df = protein_id, contig_id, keywords, cluster
         # profiles_df = contig_id, pc_id
         # contigs_df = contig_id, proteins (#)
@@ -412,7 +436,7 @@ def main(args):
         # Export csv files...
         logger.info("Saving intermediate files...")  # Save the dataframes
 
-        dfs = [proteins_df, contigs_df, clusters_df]
+        dfs = [gene2genome_df, contigs_df, clusters_df]
         names = ['proteins', 'contigs', 'pcs']
 
         for name, df in zip(names, dfs):
@@ -501,7 +525,7 @@ def main(args):
             '--seed-method': args.vc_seed
         }
 
-        gc = vcontact.contig_clusters.ContigCluster(pcp, output_dir, args.cluster_one, cluster_one_args,
+        gc = vcontact.contig_clusters.ContigCluster(pcp, output_dir, cluster_one_fp, cluster_one_args,
                                                     inflation=args.vc_inflation,
                                                     threshold=args.sig, membership_simple=not args.permissive,
                                                     mode=args.vc_mode)
@@ -608,8 +632,8 @@ def main(args):
 
     # Final summary output
     try:
-        vcontact.exports.all.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
-                                           profiles_fp, vc)
+        vcontact.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
+                                                 profiles_fp, vc)
     except Exception as e:
         logger.error("Error in exporting the final summary data: {}".format(e))
 
