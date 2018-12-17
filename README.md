@@ -164,7 +164,7 @@ PLQADPPGFEPGTSGSGGGKEGTERRKIALVANLRQYATDGNIKAFYDYLMNERGISEKT
 AKDYINAISKPYKETRDAQKAYRLFARFLASRNIIHDEFADKILKAVKVKKANADIYIPT
 ```
 
-2. A "gene-to-genome" mapping file, in either tsv (tab)- or csv (comma)-separated format.
+2\. A "gene-to-genome" mapping file, in either tsv (tab)- or csv (comma)-separated format.
 
 ```
 protein_id,contig_id,keywords
