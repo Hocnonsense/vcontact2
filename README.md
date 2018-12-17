@@ -17,6 +17,7 @@ vConTACT to also work.
  * biopython>=1.68
  * hdf5>=1.8.17
  * pytables>=3.3.0
+ * psutils
 
 vConTACT also requires several executables, depending on use.
 
