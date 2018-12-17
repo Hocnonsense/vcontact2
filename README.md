@@ -5,9 +5,10 @@ vConTACT2 is a tool to perform guilt-by-contig-association automatic classificat
 
 ## Requirements
 
-vConTACT requires numerous python packages to function correctly, and each must be properly installed and working for vConTACT to also work.
+vConTACT requires numerous python packages to function correctly, and each must be properly installed and working for 
+vConTACT to also work.
 
- * python 3.6
+ * python ~3.6 (not python 2.7 safe)
  * networkx>=1.11
  * numpy>=1.12.1
  * scipy>=0.19.0
@@ -24,23 +25,29 @@ vConTACT also requires several executables, depending on use.
  * DIAMOND (only if using DIAMOND for PC construction)
  * ClusterONE (only if using for PC or VC construction)
 
-Generally you want these tools to be in your system or user PATHs. vConTACT will search these paths first before using user-defined ones.
+Generally you want these tools to be in your system or user PATHs. vConTACT will use any user-provided paths before 
+searching through system PATHs.
 
-Hardware requirements *can be considerable* (exceeding 48 GB!), depending  mainly on the size and complexity of the dataset. 
+Hardware requirements *can be considerable* (exceeding 48 GB!), depending  mainly on the size and complexity of the 
+dataset. (Relationship between memory requirements and sequences analyzed forthcoming)
 
 ## Installation
 
-Installing vConTACT dependencies may seem daunting, but the instructions below should work for the vast majority of users. While Windows is not officially supported, users have been able to run vConTACT on these machines.
+Installing vConTACT dependencies may seem daunting, but the instructions below should work for the vast majority of 
+users. While Windows is not officially supported, users have been able to run vConTACT on these machines (usually 
+through some sort of virtual machine).
 
 #### Singularity
 
-A singularity image is provided accompanying this documentation. Please use this file to create and bootstrap the vConTACT container.
+A singularity image is provided accompanying this documentation. Please use this file to create and bootstrap the 
+vConTACT container.
 
 ```bash
 sudo singularity build vConTACT2.simg vConTACT2.def
 ```
 
-The build process can take a significant amount of time depending on available hardware and network speed. Builds can take anywhere from 5 to 30 minutes. If you see *Finalizing Singularity container* at the end of bootstrapping, you're probably good to go.
+The build process can take a significant amount of time depending on available hardware and network speed. Builds can 
+take anywhere from 5 to 30 minutes. If you see *Finalizing Singularity container* at the end of bootstrapping, you're probably good to go.
 
 Once built, the container can be run via:
 
@@ -50,9 +57,11 @@ singularity run vConTACT2.img <args>
 
 #### Conda-based installation (Mac/Linux) (recommended)
 
-We highly recommend using a python environment when installing this software, as dependency versions can (and often do) conflict with each other.
+We highly recommend using a python environment when installing this software, as dependency versions can (and often do)
+ conflict with each other.
 
-For this, we'll be installing everything into /usr/local/bin. If user permissions don't allow installation to that location, you can try $HOME/bin (which will use the bin directory under your home folder).
+For this, we'll be installing everything into /usr/local/bin. If user permissions don't allow installation to that 
+location, you can try $HOME/bin (which will use the bin directory under your home folder).
 
 First, grab our favorite manager, Anaconda/Miniconda and install.
 
@@ -94,7 +103,9 @@ cd ncbi-blast-2.6.0+
 cp bin/* /usr/local/bin/
 ```
 
-Install DIAMOND. DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows little/no difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have been performed to recommend.*
+Install DIAMOND. DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows 
+little/no difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house 
+analyses have been performed to recommend.*
 
 ```bash
 wget --no-verbose http://github.com/bbuchfink/diamond/releases/download/v0.9.10/diamond-linux64.tar.gz
@@ -143,7 +154,8 @@ vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-
 
 ## Input files and formats
 
-vConTACT2 tries to alleviate some of the challenges created by the complex file format of the original vConTACT and provides a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in providing files at various points along the processing pipeline. Generally speaking, if a user provides an intermediary file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial recovery and re-start of any interrupted analysis.
+vConTACT2 tries to alleviate some of the challenges created by the complex file format of the original vConTACT and 
+provides a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in providing files at various points along the processing pipeline. Generally speaking, if a user provides an intermediary file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial recovery and re-start of any interrupted analysis.
 
 ##### If starting from raw proteins
 
@@ -179,7 +191,7 @@ ref|NP_039784.1|,Sulfolobus spindle-shaped virus 1,ORF E-51
 ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,ORF E-96
 ```
 
-[Alternatively] Multiple keywords must be separated using ";":
+(Multiple keywords must be separated using ";":)
 
 ```
 protein_id,contig_id,keywords
@@ -202,7 +214,8 @@ vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-f
 
 ##### If starting with a BLASTP or Diamond results file
 
-In addition to the gene-to-genome mapping file (above), users must provide a tab-delimited (i.e. "tabular") BLASTP (-outfmt 6) or Diamond file (--outfmt 0).
+In addition to the gene-to-genome mapping file (above), users must provide a tab-delimited (i.e. "tabular") BLASTP 
+(-outfmt 6) or Diamond file (--outfmt 0).
 
 ```
 NP_039777.1	NP_039777.1	100.0	251	0	0	1	251	1	251	2.1e-144	510.8
@@ -225,7 +238,10 @@ vcontact --blast-fp [BLASTP/Diamond file] --rel-mode ‘Diamond’ --proteins
 
 ##### If starting with contig, PC and PC profile info files
 
-Existing vConTACT users will recognize these are the output files from vConTACT-PCs, the tool that parsed BLASTP output files and a gene-to-genome mapping file and generated these 3 files. Although vConTACT-PCs has been fully integrated (with improved options), we still want to be able to support analyses performed with the original vConTACT (and if users wish to compare v1 and v2).
+Existing vConTACT users will recognize these are the output files from vConTACT-PCs, the tool that parsed BLASTP output
+ files and a gene-to-genome mapping file and generated these 3 files. Although vConTACT-PCs has been fully integrated 
+ (with improved options), we still want to be able to support analyses performed with the original vConTACT (and if 
+ users wish to compare v1 and v2).
 
 **pcs.csv**: File with information about each PC. The size of the PC, how many ORFs/genes were annotated, and counts these annotations for the "keywords" column.
 
@@ -241,7 +257,7 @@ PC_00007,101,101.0,"gp41 replication and recombination DNA helicase (7); DNA pri
 PC_00008,101,101.0,"RnlB RNA ligase 2 (15); RNA ligase 2 (41); putative RnlB RNA ligase 2 (1); putative RNA ligase 2 (3); unnamed protein product (1); RnlB-B RNA ligase 2 (1); RnlB-A RNA ligase 2 (1); RNA ligase (21); rnlB gene product (1); RnlB 2nd RNA ligase (1); hypothetical protein ECML134_173 (1); hypothetical protein HY03_0045 (1); hypothetical protein HY03_0044 (1); putative RNA ligase (2); phage-associated RNA ligase (1)"
 ```
 
-Note the parentheses ("") for rows that include ","
+Note: parentheses ("") for rows that include ","
 
 **profiles.csv**: Each ORF gets assigned to a PC (unless it's a singleton, in which case it's empty) and that ORF "position" inherits the PC it was assigned.
 
@@ -275,7 +291,7 @@ Sulfolobus turreted icosahedral virus 2,34
 vcontact --contigs-fp [contig csv file] --pcs-fp [PCs csv file] --pcprofiles-fp [PC profile csv file] --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
-Please note that using this method will disallow the use of reference databases.
+Note: using this method will disallow the use of reference databases!
 
 ### Example files
 
@@ -285,7 +301,9 @@ Example files are provided in the test_data/ directory. To use vConTACT2 with th
 vcontact2 --raw-proteins test_data/VIRSorter_viral_prots.faa --rel-mode ‘Diamond’ --proteins-fp test_data/proteins.csv --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir VirSorted_Outputs
 ```
 
-You should file a large assortment of input, intermediary and final output files in the "VirSorted_Outputs" directory. *Most important* is node_table_summary.csv **node_table_summary.csv** file. It has a list of genomes processed, as well as any reference databases used. 
+You should find a large assortment of input, intermediary and final output files in the "VirSorted_Outputs" directory. 
+*Most important* are **viral_cluster_overview.csv** and **genome_by_genome_overview.csv** file. They contain a list of 
+VC-by-VC and genome-by-genome processed, as well as any reference databases used. 
 
 ## Citation
 
