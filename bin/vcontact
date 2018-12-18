@@ -33,6 +33,8 @@ import vcontact.exports.cytoscape
 import vcontact.exports.profiles
 import vcontact.exports.summaries
 
+from vcontact.loader import _matrix
+
 
 # Argparse multiple inheritance
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
@@ -182,7 +184,7 @@ network.add_argument('--link-prop', default=0.5, type=float, dest='link_prop',
 
 outputs = parser.add_argument_group('Output Options')
 
-outputs.add_argument('-e','--exports', nargs="*", default=["csv"],
+outputs.add_argument('-e', '--exports', nargs="*", default=["csv"],
                      help='Export backend. Suported values are "csv", "krona" and "cytoscape"')
 
 outputs.add_argument('--cluster-filter', nargs="*", default=[0],
@@ -228,7 +230,6 @@ logger.addHandler(ch)
 
 
 def main(args):
-
     # There's almost no point in providing the ability to combine references with user data if they already have a
     # pre-run BLASTP (as is used with vConTACT-PCs. Otherwise the user would need to re-BLAST everything with the DB.
 
@@ -237,30 +238,38 @@ def main(args):
 
     # Checks
     cluster_one_fp = args.cluster_one
-    if not cluster_one_fp:
-        if ('ClusterONE' in args.pcs_mode) or ('ClusterONE' in args.vc_mode):
-            if shutil.which('cluster_one-1.0.jar') is None:
+    if ('ClusterONE' in args.pcs_mode) or ('ClusterONE' in args.vc_mode):
+        if not cluster_one_fp:  # If user hasn't provided a path
+            cluster_one_fp = shutil.which('cluster_one-1.0.jar')
+            if cluster_one_fp is None:
                 logger.error("Could not find ClusterONE java file.")
             else:
-                cluster_one_fp = shutil.which('cluster_one-1.0.jar')
+                logger.info('Found ClusterONE: {}'.format(cluster_one_fp))
+
+    diamond_fp = args.diamond_fp
+    if args.rel_mode == 'Diamond':
+        if not diamond_fp:
+            diamond_fp = shutil.which('diamond')
+            if diamond_fp is None:
+                logger.error("Could not find Diamond in $PATH.")
+            else:
+                logger.info('Found Diamond: {}'.format(diamond_fp))
+
+    blastp_fp = args.blastp_fp
+    if args.rel_mode == 'BLASTP':
+        if not blastp_fp:
+            blastp_fp = shutil.which('blastp')
+            if blastp_fp is None:
+                logger.error("Could not find BLASTp in $PATH.")
+            else:
+                logger.info('Found BLASTP: {}'.format(blastp_fp))
 
     if 'MCL' in (args.pcs_mode or args.vc_mode):
+        mcl_fp = shutil.which('mcxload')
         if shutil.which('mcxload') is None:
             logger.error("Could not find MCL (specifically mcxload) in $PATH.")
         else:
-            logger.info('Found MCL: {}'.format(shutil.which('mcxload')))
-
-    if args.rel_mode == 'Diamond':
-        if shutil.which('diamond') is None:
-            logger.error("Could not find Diamond in $PATH.")
-        else:
-            logger.info('Found Diamond: {}'.format(shutil.which('diamond')))
-
-    if args.rel_mode == 'BLASTP':
-        if shutil.which('blastp') is None:
-            logger.error("Could not find BLASTp in $PATH.")
-        else:
-            logger.info('Found BLASTP: {}'.format(shutil.which('blastp')))
+            logger.info('Found MCL: {}'.format(mcl_fp))
 
     # Global
     cpus = args.threads
@@ -384,13 +393,11 @@ def main(args):
                 logger.error("Unable to identify file format for {}.".format(os.path.basename(gene2genome_fp)))
 
             ref_proteins_df = pd.read_csv(ref_g2c[args.db], sep=',', header=0)
-            # ref_proteins_df.to_csv(os.path.join(output_dir, 'ref_proteins_df.csv'))
-
             gene2genome_df = pd.concat([usr_gene2genome_df, ref_proteins_df])
 
         else:
             if os.path.basename(usr_gene2genome_fp).endswith('.csv'):
-                gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep=',', header=0)  # Don't rely on pandas identify delim
+                gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep=',', header=0)  # Don't rely on pandas to identify
             elif os.path.basename(usr_gene2genome_fp).endswith('.tsv'):
                 gene2genome_df = pd.read_csv(usr_gene2genome_fp, sep='\t', header=0)
             else:
@@ -401,7 +408,7 @@ def main(args):
         logger.debug("Read {} proteins from {}.".format(len(gene2genome_df), args.proteins_fp))
 
         pcs_mode = args.pcs_mode
-        pc_overlap, pc_penalty, pc_haircut, pc_inflation = args.pc_overlap, args.pc_penalty, args.pc_haircut,\
+        pc_overlap, pc_penalty, pc_haircut, pc_inflation = args.pc_overlap, args.pc_penalty, args.pc_haircut, \
                                                            args.pc_inflation
 
         similarity_fn = os.path.basename(similarity_fp)
@@ -419,7 +426,8 @@ def main(args):
             pcs_fp = vcontact.protein_clusters.make_protein_clusters_mcl(similarity_fp, output_dir, args.pc_inflation)
         elif (pcs_mode == 'ClusterONE') and (not os.path.exists(pcs_fn) or args.force_overwrite):
             pcs_fp = vcontact.protein_clusters.make_protein_clusters_one(similarity_fp, cluster_one_fp, output_dir,
-                                                                         args.pc_overlap, args.pc_penalty, args.pc_haircut)
+                                                                         args.pc_overlap, args.pc_penalty,
+                                                                         args.pc_haircut)
         else:
             pcs_fp = False
             logger.debug("File {} exists and will be used. Use -f to overwrite.".format(pcs_fn))
@@ -459,22 +467,67 @@ def main(args):
     # But at this moment would need to rewrite the csv loader to accommodate dataframes directly
 
     # Loader
-    print("\n\n"+"{:-^80}".format("Loading data"))
+    print("\n\n" + "{:-^80}".format("Loading data"))
     name = 'vConTACT'
 
     # pcs_df = pos, id, pc_id, nb_proteins
     # contigs_df = pos, id (contig), proteins
     # profiles = dict w/ matrix and singletons
-    contigs_csv_df, pcs_csv_df, profiles_csv = vcontact.loader.csv(os.path.join(output_dir, '{}_contigs.csv'.format(name)),
-                                                                   os.path.join(output_dir, '{}_pcs.csv'.format(name)),
-                                                                   profiles_fp, output_dir, name, args.force_overwrite)
+    # Refactor later
+
+    # contigs_csv_df = pd.read_csv(contigs_fi, sep=',', low_memory=False)
+    contigs_csv_df = contigs_df.copy()
+    contigs_csv_df['contig_id'] = contigs_csv_df['contig_id'].str.replace(' ', '~')
+    logger.debug(
+        "Read {} entries from {}".format(len(contigs_csv_df), os.path.join(output_dir, '{}_contigs.csv'.format(name))))
+    contigs_csv_df.index.name = "pos"
+    contigs_csv_df.reset_index(inplace=True)
+
+    pcs_csv_df = clusters_df.copy()
+
+    profiles = profiles_df.copy()
+
+    profiles['contig_id'] = profiles['contig_id'].str.replace(' ', '~')
+
+    # Filtering the PC profiles that appears only once
+    before_filter = len(profiles)
+    cont_by_pc = profiles.groupby("pc_id").count().contig_id.reset_index()
+
+    # get the number of contigs for each pcs and add it to the dataframe
+    cont_by_pc.columns = ["pc_id", "nb_proteins"]
+    pcs_csv_df = pd.merge(pcs_csv_df, cont_by_pc, left_on="pc_id", right_on="pc_id", how="left")
+    pcs_csv_df.fillna({"nb_proteins": 0}, inplace=True)
+
+    # Drop the pcs that <= 1 contig from the profiles.
+    pcs_csv_df = pcs_csv_df[pcs_csv_df['nb_proteins'] > 1]  # .query("nb_contigs>1")
+    at_least_a_cont = cont_by_pc[cont_by_pc['nb_proteins'] > 1]  # cont_by_pc.query("nb_contigs>1")
+
+    # profiles = profiles.query("pc_id in at_least_a_cont.pc_id")
+    profiles = profiles[profiles['pc_id'].isin(at_least_a_cont.pc_id)]
+
+    logger.info("Read {} entries (dropped {} singletons) from {}".format(
+        len(profiles), (before_filter - len(profiles)), profiles_fp))
+
+    pcs_csv_df = pcs_csv_df.reset_index(drop=True)
+    pcs_csv_df.index.name = "pos"
+    pcs_csv_df = pcs_csv_df.reset_index()
+
+    matrix, singletons = _matrix(profiles, contigs_csv_df, pcs_csv_df)  # Build PC profiles matrices from 3 df's
+
+    # save
+    profiles_csv = {"matrix": matrix, "singletons": singletons}
+
+    # contigs_csv_df, pcs_csv_df, profiles_csv = vcontact.loader.csv(os.path.join(output_dir, '{}_contigs.csv'.format(name)),
+    #                                                                os.path.join(output_dir, '{}_pcs.csv'.format(name)),
+    #                                                                profiles_fp, output_dir, name, args.force_overwrite)
 
     if args.db != 'None':
         print("\n\n" + "{:-^80}".format("Adding Taxonomy"))
 
         ref_tax = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.ICTV-reference.csv'),
-            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
             'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.Merged-reference.csv')
         }
 
@@ -497,7 +550,7 @@ def main(args):
     else:
         merged_df = contigs_csv_df
 
-    print("\n\n"+"{:-^80}".format("Calculating Similarity Networks"))
+    print("\n\n" + "{:-^80}".format("Calculating Similarity Networks"))
 
     # Protein Cluster Profile
     # .contigs, .pcs, .matrix, .singletons, .ntw, .ntw_modules
@@ -510,7 +563,7 @@ def main(args):
 
     logger.debug("Network Contigs:\n {}".format(pcp.ntw.todense()))  # pcm contigs
 
-    print("\n\n"+"{:-^80}".format("Contig Clustering & Affiliation"))
+    print("\n\n" + "{:-^80}".format("Contig Clustering & Affiliation"))
 
     try:
 
@@ -553,7 +606,7 @@ def main(args):
         logger.error("Error in viral clusters")
         logger.exception(e)
 
-    print("\n\n"+"{:-^80}".format("Protein modules"))
+    print("\n\n" + "{:-^80}".format("Protein modules"))
 
     try:
         modules = vcontact.modules.Modules(pcp, output_dir, threshold=args.mod_sig, inflation=args.mod_inflation,
@@ -572,7 +625,7 @@ def main(args):
     # VCs and PC modules are independent of each other, as each takes into account the totality of the other, yet isn't
     # influenced by either's result
 
-    print("\n\n"+"{:-^80}".format("Link modules and clusters"))
+    print("\n\n" + "{:-^80}".format("Link modules and clusters"))
 
     try:
         link = modules.link_modules_and_clusters_df(gc.clusters, gc.contigs, thres=args.link_sig,
@@ -596,36 +649,37 @@ def main(args):
         except Exception as e:
             logger.error("Error in profiles export")
             logger.exception(e)
-        
+
     if "cytoscape" in args.exports:
         cytoscape_file = output_dir + "cytoscape_export"
 
         try:
-            vcontact.exports.cytoscape.contigs(gc.network, gc.contigs, args.cluster_filter, cytoscape_file+"_contigs")
+            vcontact.exports.cytoscape.contigs(gc.network, gc.contigs, args.cluster_filter, cytoscape_file + "_contigs")
         except Exception as e:
             logger.error("Error in Cytoscape export of contigs")
-            logger.exception(e) 
+            logger.exception(e)
 
-        try:        
+        try:
             vcontact.exports.cytoscape.clusters(gc.network, gc.contigs, gc.clusters, args.criterion,
-                                                cytoscape_file+"_clusters")
+                                                cytoscape_file + "_clusters")
 
-            vcontact.exports.cytoscape.membership(cytoscape_file+"_membership", gc.matrix["B"], gc.contigs, gc.clusters,
+            vcontact.exports.cytoscape.membership(cytoscape_file + "_membership", gc.matrix["B"], gc.contigs,
+                                                  gc.clusters,
                                                   args.cluster_filter, args.criterion)
         except Exception as e:
             logger.error("Error in Cytoscape export of clusters")
-            logger.exception(e) 
+            logger.exception(e)
 
     if "krona" in args.exports:
         krona_file = output_dir + "krona_export.txt"
         try:
-            vcontact.exports.krona.textfile(gc.contigs,krona_file)
+            vcontact.exports.krona.textfile(gc.contigs, krona_file)
         except Exception as e:
             logger.error("Error in Krona export")
-            logger.exception(e) 
-        
+            logger.exception(e)
+
         try:
-            subprocess.check_call("ktImportText {}".format(krona_file),shell=True)
+            subprocess.check_call("ktImportText {}".format(krona_file), shell=True)
         except Exception as e:
             logger.error(("ktImportText {} failed ({}). \n (Is krona executable in the PATH?). You can still do it "
                           "manually.").format(krona_file, e))
