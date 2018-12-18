@@ -2,7 +2,7 @@
     compute the similarity network on the contigs and the pcs. """
 import logging
 import sys
-import pandas
+import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import scipy.sparse as sparse
@@ -271,12 +271,12 @@ class PCProfiles(object):
 
         D = networkx.from_scipy_sparse_matrix(matrix)
         
-        bc = pandas.Series(networkx.betweenness_centrality(D), name="betweeness_centrality")
-        degr = pandas.Series(networkx.degree(D), name="degree")
-        clcoef = pandas.Series(networkx.clustering(D), name="clustering_coef")
+        bc = pd.Series(networkx.betweenness_centrality(D), name="betweeness_centrality")
+        degr = pd.Series(networkx.degree(D), name="degree")
+        clcoef = pd.Series(networkx.clustering(D), name="clustering_coef")
                 
-        df = pandas.concat([bc, degr, clcoef], axis=1)
-        self.contigs = pandas.merge(self.contigs, df, left_on="pos", right_index=True)
+        df = pd.concat([bc, degr, clcoef], axis=1)
+        self.contigs = pd.merge(self.contigs, df, left_on="pos", right_index=True)
 
     def hypergeom(self, num_pcs, common_pcs, total_pcs, total_comparisons, thres, max_thres, shard):
         """
@@ -320,6 +320,45 @@ class PCProfiles(object):
         path = self.name + ".pkle" if path is None else path
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+
+
+def build_pc_matrices(profiles, contigs, pcs):
+    """
+    Build the pc profiles matrices (shared & singletons) from dataframes.
+
+    Args:
+        profiles (dataframe): required fields are contig_id and pc_id. # pos, contig_id, pc_id
+        contigs (dataframe): contigs info, required field are proteins, pos and id. # pos, contig_id, proteins
+        pcs (dataframe): pcs info, required field are pos and id.  # pos, id, size, annotated
+
+    Returns:
+        (tuple of sparse matrix): Shared PCs and singletons matrix.
+    """
+
+    pc_by_cont = profiles.groupby("contig_id").count().pc_id
+    pc_by_cont = pc_by_cont.reset_index()
+    pc_by_cont = pd.merge(contigs.sort_values("pos").loc[:, ["pos", "contig_id", "proteins"]], pc_by_cont, how="left",
+                          left_on="contig_id", right_on="contig_id").fillna(0)
+    singletons = (pc_by_cont.proteins - pc_by_cont.pc_id).values
+    singletons = sparse.lil_matrix(singletons).transpose()
+
+    # Matrix
+    profiles.index.name = "pos"
+    profiles.reset_index(inplace=True)
+
+    # pc_id or contig?
+    profiles = pd.merge(profiles, pcs.loc[:, ["pc_id", "pos"]], left_on="pc_id", right_on="pc_id", how="inner",
+                            suffixes=["", "_pc"])  # pos, contig_id, pc_id, id (pc), pos_pc
+
+    profiles = pd.merge(profiles, contigs.loc[:, ["contig_id", "pos"]], left_on="contig_id", right_on="contig_id", how="inner",
+                            suffixes=["", "_contig"])
+
+    profiles = profiles.loc[:, ["pos_contig", "pos_pc"]]
+
+    matrix = sparse.coo_matrix(([1]*len(profiles), (zip(*profiles.values))), shape=(len(contigs), len(pcs)),
+                               dtype="bool")
+
+    return matrix.tocsr(), singletons.tocsr()
 
 
 def read_pickle(path):

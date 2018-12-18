@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.9.1b',
+      version='0.9.2b',
       description='Viral Contig Automatic Clutering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
@@ -25,7 +25,7 @@ setup(name='vcontact2',
         'pandas>=0.21.0',
         'scikit-learn>=0.18.1',
         'biopython>=1.68',
-        'hdf5>=1.8.17',
+        # 'hdf5>=1.8.17',
         'pytables>=3.3.0'  # or pip tables
       ]
       )

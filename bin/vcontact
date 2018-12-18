@@ -21,7 +21,6 @@ import numpy as np
 import pkg_resources
 import vcontact
 import vcontact.protein_clusters
-import vcontact.loader
 import vcontact.pcprofiles
 import vcontact.contig_clusters
 import vcontact.evaluations
@@ -32,8 +31,6 @@ import vcontact.exports.krona
 import vcontact.exports.cytoscape
 import vcontact.exports.profiles
 import vcontact.exports.summaries
-
-from vcontact.loader import _matrix
 
 
 # Argparse multiple inheritance
@@ -512,7 +509,7 @@ def main(args):
     pcs_csv_df.index.name = "pos"
     pcs_csv_df = pcs_csv_df.reset_index()
 
-    matrix, singletons = _matrix(profiles, contigs_csv_df, pcs_csv_df)  # Build PC profiles matrices from 3 df's
+    matrix, singletons = vcontact.pcprofiles.build_pc_matrices(profiles, contigs_csv_df, pcs_csv_df)
 
     # save
     profiles_csv = {"matrix": matrix, "singletons": singletons}
@@ -634,6 +631,8 @@ def main(args):
         link = None
         logger.error("Error in linking modules and clusters")
         logger.exception(e)
+
+    print("\n\n" + "{:-^80}".format("Exporting results files"))
 
     # OUTPUT
     if "csv" in args.exports:
