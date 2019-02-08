@@ -15,7 +15,10 @@ setup(name='vcontact2',
                                  'data/ViralRefSeq-prokaryotes-v85.Merged-reference.csv',
                                  'data/ViralRefSeq-archaea-v85.faa.gz',
                                  'data/ViralRefSeq-archaea-v85.protein2contig.csv',
-                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv']},
+                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv',
+                                 'data/ViralRefSeq-prokaryotes-v88.faa.gz',
+                                 'data/ViralRefSeq-prokaryotes-v88.protein2contig.csv'
+                                 'data/ViralRefSeq-prokaryotes-v88.Merged-reference.csv']},
       scripts=['bin/vcontact'],
       setup_requires=['setuptools-markdown'],
       install_requires=[
