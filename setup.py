@@ -9,16 +9,17 @@ setup(name='vcontact2',
       author_email='bolduc.10@osu.edu',
       license='GPLv3',
       packages=['vcontact', 'vcontact.exports', 'vcontact.utilities'],
-      package_data={'vcontact': ['data/ViralRefSeq-prokaryotes-v85.faa.gz',
+      package_data={'vcontact': ['data/ViralRefSeq-prokaryotes-v88.faa.gz',
+                                 'data/ViralRefSeq-prokaryotes-v88.protein2contig.csv'
+                                 'data/ViralRefSeq-prokaryotes-v88.Merged-reference.csv'
+                                 'data/ViralRefSeq-prokaryotes-v85.faa.gz',
                                  'data/ViralRefSeq-prokaryotes-v85.protein2contig.csv',
                                  'data/ViralRefSeq-prokaryotes-v85.ICTV-reference.csv',
                                  'data/ViralRefSeq-prokaryotes-v85.Merged-reference.csv',
                                  'data/ViralRefSeq-archaea-v85.faa.gz',
                                  'data/ViralRefSeq-archaea-v85.protein2contig.csv',
-                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv',
-                                 'data/ViralRefSeq-prokaryotes-v88.faa.gz',
-                                 'data/ViralRefSeq-prokaryotes-v88.protein2contig.csv'
-                                 'data/ViralRefSeq-prokaryotes-v88.Merged-reference.csv']},
+                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv'
+                                 ]},
       scripts=['bin/vcontact'],
       setup_requires=['setuptools-markdown'],
       install_requires=[
