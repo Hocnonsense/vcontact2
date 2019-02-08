@@ -28,6 +28,9 @@ MirrorURL: http://ftp.us.debian.org/debian/
     # Install vContact
     git clone https://bolduc@bitbucket.org/MAVERICLab/vcontact2.git
     cd vcontact2 && pip install --no-dependencies .
+
+    # Bug with setuptools?
+    cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v88.* /usr/local/lib/python3.7/site-packages/vcontact/data/
     
     # Install MCL
     cd / && wget http://micans.org/mcl/src/mcl-latest.tar.gz
