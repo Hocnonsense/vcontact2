@@ -66,6 +66,7 @@ inputs.add_argument('--db', type=str,
                     choices=['None',
                              'ProkaryoticViralRefSeq85-ICTV',
                              'ProkaryoticViralRefSeq85-Merged',
+                             'ProkaryoticViralRefSeq88-Merged',
                              'ArchaeaViralRefSeq85-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
@@ -288,6 +289,7 @@ def main(args):
     ref_dbs = {
         'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
         'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
+        'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.faa.gz'),
         'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.faa.gz')
     }
 
@@ -373,6 +375,7 @@ def main(args):
         ref_g2c = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
             'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
+            'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.protein2contig.csv'),
             'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.protein2contig.csv')
         }
 
@@ -523,8 +526,8 @@ def main(args):
 
         ref_tax = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.ICTV-reference.csv'),
-            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root,
-                                                            'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.Merged-reference.csv'),
             'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.Merged-reference.csv')
         }
 
