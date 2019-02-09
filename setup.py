@@ -29,7 +29,7 @@ setup(name='vcontact2',
         'pandas>=0.21.0',
         'scikit-learn>=0.18.1',
         'biopython>=1.68',
-        # 'hdf5>=1.8.17',
-        'pytables>=3.3.0'  # or pip tables
+        'hdf5>=1.8.17',
+        'tables>=3.3.0'
       ]
       )
