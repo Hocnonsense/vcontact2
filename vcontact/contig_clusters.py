@@ -207,15 +207,15 @@ class ContigCluster(object):
 
         if not os.path.exists(fi_clusters) or force:
 
-            cluster_one_cmd = 'java -jar {} {} --input-format edge_list --output-format csv --fluff'.format(cluster_one, fi_ntw)
-
-            print(cluster_one_cmd)
+            # Disable --fluff as it's not in published algorithm or used in published manuscript
+            cluster_one_cmd = 'java -jar {} {} --input-format edge_list --output-format csv'.format(cluster_one, fi_ntw)
 
             for opt, val in options.items():
                 cluster_one_cmd += ' {} {}'.format(opt, val)
 
             cluster_one_cmd += ' > {}'.format(fi_clusters)
 
+            logger.info('Running clusterONE: {}'.format(cluster_one_cmd))
             subprocess.call(cluster_one_cmd, shell=True)
             logger.debug("ClusterONE results are being saved to {}.".format(fi_clusters))
 
