@@ -24,8 +24,13 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
+from Bio import Entrez
 
 from ete3 import NCBITaxa
+
+pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_columns', 10)
+pd.set_option('display.width', 10000)
 
 from pprint import pprint
 
@@ -33,7 +38,8 @@ from pprint import pprint
 ncbi = NCBITaxa()
 
 db_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'Databases'))
-refseq_dir = os.path.join(db_dir, 'ViralRefSeq/v85/')
+# refseq_dir = os.path.join(db_dir, 'ViralRefSeq/v85/')
+refseq_dir = os.path.join('/Users/bolduc.10/Research/Databases/ViralRefSeq-v88/')
 
 
 def build_viral_refseq(refseq_fp_list):
@@ -76,15 +82,33 @@ def build_viral_refseq(refseq_fp_list):
 refseq_fps = [
     os.path.join(refseq_dir, 'viral.1.protein.faa.gz'),
     os.path.join(refseq_dir, 'viral.2.protein.faa.gz'),
-    os.path.join(refseq_dir, 'Campylobacter_virus_IBB35.faa.tar.gz'), # ORFs spread across 5 contigs
-    os.path.join(refseq_dir, 'Enterobacteria_phage_HX01.faa.tar.gz')  # Only 62 of 269 genes in refseq?!
+    # os.path.join(refseq_dir, 'Campylobacter_virus_IBB35.faa.tar.gz'), # ORFs spread across 5 contigs
+    # os.path.join(refseq_dir, 'Enterobacteria_phage_HX01.faa.tar.gz')  # Only 62 of 269 genes in refseq?!
 ]
 # RefSeq has all the possible genomes/genes to which we have access
 refseq_df = build_viral_refseq(refseq_fps)
 
 # Only (???) phage mistaken naming in RefSeq? This phage name exists in proteins, but its genome name cant be found?!?!
-refseq_df['Organism'] = refseq_df['Organism'].str.replace('Enterobacteria phage phiK', 'Escherichia virus phiK')
+# refseq_df['Organism'] = refseq_df['Organism'].str.replace('Enterobacteria phage phiK', 'Escherichia virus phiK')
 
+
+def get_tax_id(species):
+    """to get data from ncbi taxomomy, we need to have the taxid. we can
+    get that by passing the species name to esearch, which will return
+    the tax id"""
+    search = Entrez.esearch(term=species, db="taxonomy", retmode="xml")
+    record = Entrez.read(search)
+
+    return record['IdList'][0]
+
+
+def get_tax_data(taxid):
+    """once we have the taxid, we can fetch the record"""
+    search = Entrez.efetch(id=taxid, db="taxonomy", retmode="xml")
+    return Entrez.read(search)
+
+
+Entrez.email = "bolduc.10@osu.edu"
 lite_refseq_df = refseq_df.loc[:, ['Organism', 'Accession']].copy()
 lite_refseq_df.drop_duplicates(subset=['Organism'], keep='first', inplace=True)
 
@@ -99,8 +123,13 @@ for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
         sys.stderr.write('More than 1 tax id found')
         sys.exit(1)
     elif len(taxID) == 0:
-        print('Unable to identify taxID for {}'.format(organism))
-        taxID = '10239'
+
+        try:
+            taxID = get_tax_id(organism)  # Backup
+        except IndexError or len(taxID) == 0:
+            print('Unable to identify taxID for {}'.format(organism))
+            taxID = '10239'
+
     else:
         # print('Unable to find taxID for {} initially, but found {}'.format(organism, taxID))
         taxID = list(taxID.values())[0][0]
@@ -213,7 +242,7 @@ def build_ictv_report(ictv_report):
 
 
 # Load ICTV taxonomy
-ictv_report_fp = os.path.join(refseq_dir, 'ICTV_Master_Species_List_2016_v1.3.csv')
+ictv_report_fp = os.path.join(refseq_dir, 'ICTV_Master_Species_List_2018a_v1.csv')
 ictv_report_df = build_ictv_report(ictv_report_fp)
 
 lite_ictv_report_df = ictv_report_df.loc[:, ['Order', 'Family', 'Subfamily', 'Genus', 'Species']].copy()
@@ -277,10 +306,10 @@ prokaryote_df = lite_refseq_df[(lite_refseq_df['Host'].str.contains('bacteria|ar
 # Haloarcula californiae icosahedral virus 1 changed from 'environment' to 'archaea' as host
 
 # Primary annotation
-db_dir = '/Users/bolduc.10/Research/Bioinformatics/Repositories/vcontact2/Databases'
-fst_ref = os.path.join(db_dir, '2017_ICTV_update_HB.csv')  # Name
-fst_ref_df = pd.read_csv(fst_ref, header=0, delimiter=',', engine='python')  # C is having issues with file
-fst_ref_df['Name'] = fst_ref_df['Name'].str.replace('_', ' ')
+# db_dir = '/Users/bolduc.10/Research/Bioinformatics/Repositories/vcontact2/Databases'
+# fst_ref = os.path.join(db_dir, '2017_ICTV_update_HB.csv')  # Name
+# fst_ref_df = pd.read_csv(fst_ref, header=0, delimiter=',', engine='python')  # C is having issues with file
+# fst_ref_df['Name'] = fst_ref_df['Name'].str.replace('_', ' ')
 
 # A byproduct of speed and not parsing NCBI's entire synonyms database, it misses 34 of the 2K+ viruses
 aka = {
@@ -513,56 +542,56 @@ reverse_replacer = {
 
 replacer = {**aka, **reverse_replacer}
 
-for to_replace, replace_with in replacer.items():
-    fst_ref_df['Name'] = fst_ref_df['Name'].str.replace(to_replace, replace_with)
+# for to_replace, replace_with in replacer.items():
+#     fst_ref_df['Name'] = fst_ref_df['Name'].str.replace(to_replace, replace_with)
 # underscored = fst_ref_df[fst_ref_df['Name'].str.contains('_')]
 # Double-checked "_" items and 0 (ZERO) are not present (i.e. all that have _ in name STILL have it in the official)
 
 # Check to see if NEW taxonomy matches the original manuscript
 # AND
-counts = 0
-for n, (index, series) in enumerate(prokaryote_df.iterrows(), start=1):
-    organism = series['Organism']
-    ncbi_name = series['NCBI-species']
-    ictv_name = series['ICTV-Species']
-    sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
-
-    if organism in fst_ref_df['Name'].tolist():
-        fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Identified'] = 'True'
-        prokaryote_df.loc[index, '2017-PeerJ'] = organism
-        prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Order_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Family_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Genus_2017'].values[0]
-        counts += 1
-    elif organism in fst_ref_df['ICTV_species_2017'].tolist():
-        fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Identified'] = 'True'
-        prokaryote_df.loc[index, '2017-PeerJ'] = organism
-        prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Order_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Family_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Genus_2017'].values[0]
-        counts += 1
-
-    elif ncbi_name in fst_ref_df['ICTV_species_2017'].tolist():
-        fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Identified'] = 'True'
-        prokaryote_df.loc[index, '2017-PeerJ'] = ncbi_name
-        prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Order_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Family_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Genus_2017'].values[0]
-        counts += 1
-    elif ncbi_name in fst_ref_df['Name'].tolist():
-        fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Identified'] = 'True'
-        prokaryote_df.loc[index, '2017-PeerJ'] = ncbi_name
-        prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Order_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Family_2017'].values[0]
-        prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Genus_2017'].values[0]
-        counts += 1
+# counts = 0
+# for n, (index, series) in enumerate(prokaryote_df.iterrows(), start=1):
+#     organism = series['Organism']
+#     ncbi_name = series['NCBI-species']
+#     ictv_name = series['ICTV-Species']
+#     sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
+#
+#     if organism in fst_ref_df['Name'].tolist():
+#         fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Identified'] = 'True'
+#         prokaryote_df.loc[index, '2017-PeerJ'] = organism
+#         prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Order_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Family_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['Name'] == organism, 'Genus_2017'].values[0]
+#         counts += 1
+#     elif organism in fst_ref_df['ICTV_species_2017'].tolist():
+#         fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Identified'] = 'True'
+#         prokaryote_df.loc[index, '2017-PeerJ'] = organism
+#         prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Order_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Family_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == organism, 'Genus_2017'].values[0]
+#         counts += 1
+#
+#     elif ncbi_name in fst_ref_df['ICTV_species_2017'].tolist():
+#         fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Identified'] = 'True'
+#         prokaryote_df.loc[index, '2017-PeerJ'] = ncbi_name
+#         prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Order_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Family_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['ICTV_species_2017'] == ncbi_name, 'Genus_2017'].values[0]
+#         counts += 1
+#     elif ncbi_name in fst_ref_df['Name'].tolist():
+#         fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Identified'] = 'True'
+#         prokaryote_df.loc[index, '2017-PeerJ'] = ncbi_name
+#         prokaryote_df.loc[index, '2017-Order'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Order_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Family'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Family_2017'].values[0]
+#         prokaryote_df.loc[index, '2017-Genus'] = fst_ref_df.loc[fst_ref_df['Name'] == ncbi_name, 'Genus_2017'].values[0]
+#         counts += 1
 
 prokaryote_fp = os.path.join(refseq_dir, 'lite_refseq_prokaryotes_df.csv')
 prokaryote_df.to_csv(prokaryote_fp, sep=',', quotechar='"')
-
-fst_ref_df.set_index('Name')
-fst_ref_out_fp = os.path.join(db_dir, '2017_ICTV_update_HB_BB.csv')
-fst_ref_df.to_csv(fst_ref_out_fp)
+#
+# fst_ref_df.set_index('Name')
+# fst_ref_out_fp = os.path.join(db_dir, '2017_ICTV_update_HB_BB.csv')
+# fst_ref_df.to_csv(fst_ref_out_fp)
 
 # final_refseq = refseq_df.merge(, left_on='Organism', right_on='Organism', how='right')
 # WRITE OUT ['Organism/Name', 'origin', 'order', 'family', 'genus'] for TAXONOMY
@@ -572,56 +601,68 @@ for n, (index, series) in enumerate(prokaryote_df.iterrows(), start=1):
     # Actually doesn't matter the name, all that matters is what its taxonomy is
     sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
 
-    origin = 'RefSeq-85'
+    origin = 'RefSeq-88'
     order = np.nan
     family = np.nan
     genus = np.nan
 
-    if pd.isnull(series['2017-Order']) and (series['2017-Order'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Order']) and (series['ICTV-Order'] != 'unassigned'):
-            if pd.isnull(series['NCBI-order']) and (series['NCBI-order'] != 'unassigned'):
-                order = 'unassigned'
-            else:
-                order = series['NCBI-order']
+    # if pd.isnull(series['2017-Order']) and (series['2017-Order'] != 'unassigned'):
+    if pd.isnull(series['ICTV-Order']) and (series['ICTV-Order'] != 'unassigned'):
+        if pd.isnull(series['NCBI-order']) and (series['NCBI-order'] != 'unassigned'):
+            order = 'unassigned'
         else:
-            order = series['ICTV-Order']
+            order = series['NCBI-order']
     else:
-        order = series['2017-Order']
+        order = series['ICTV-Order']
+    # else:
+    #     order = series['2017-Order']
 
-    if pd.isnull(series['2017-Family']) and (series['2017-Family'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Family']) and (series['ICTV-Family'] != 'unassigned'):
-            if pd.isnull(series['NCBI-family']) and (series['NCBI-family'] != 'unassigned'):
-                family = 'unassigned'
-            else:
-                family = series['NCBI-family']
+    # if pd.isnull(series['2017-Family']) and (series['2017-Family'] != 'unassigned'):
+    if pd.isnull(series['ICTV-Family']) and (series['ICTV-Family'] != 'unassigned'):
+        if pd.isnull(series['NCBI-family']) and (series['NCBI-family'] != 'unassigned'):
+            family = 'unassigned'
         else:
-            family = series['ICTV-Family']
+            family = series['NCBI-family']
     else:
-        family = series['2017-Family']
+        family = series['ICTV-Family']
+    # else:
+    #     family = series['2017-Family']
 
-    if pd.isnull(series['2017-Genus']) and (series['2017-Genus'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Genus']) and (series['ICTV-Genus'] != 'unassigned'):
-            if pd.isnull(series['NCBI-genus']) and (series['NCBI-genus'] != 'unassigned'):
-                genus = 'unassigned'
-            else:
-                genus = series['NCBI-genus']
+    # if pd.isnull(series['2017-Subfamily']) and (series['2017-subfamily'] != 'unassigned'):
+    if pd.isnull(series['ICTV-Subfamily']) and (series['ICTV-Subfamily'] != 'unassigned'):
+        if pd.isnull(series['NCBI-subfamily']) and (series['NCBI-subfamily'] != 'unassigned'):
+            subfamily = 'unassigned'
         else:
-            genus = series['ICTV-Genus']
+            subfamily = series['NCBI-subfamily']
     else:
-        genus = series['2017-Genus']
+        subfamily = series['ICTV-Subfamily']
+    # else:
+    #     subfamily = series['2017-Family']
+
+    # if pd.isnull(series['2017-Genus']) and (series['2017-Genus'] != 'unassigned'):
+    if pd.isnull(series['ICTV-Genus']) and (series['ICTV-Genus'] != 'unassigned'):
+        if pd.isnull(series['NCBI-genus']) and (series['NCBI-genus'] != 'unassigned'):
+            genus = 'unassigned'
+        else:
+            genus = series['NCBI-genus']
+    else:
+        genus = series['ICTV-Genus']
+    # else:
+    #     genus = series['2017-Genus']
 
     taxonomy_dict[organism] = {
         'Organism/Name': organism,
         'origin': origin,
         'order': order,
         'family': family,
+        'subfamily': subfamily,
         'genus': genus
     }
 
 taxonomy_df = pd.DataFrame.from_dict(taxonomy_dict, orient='index')
 taxonomy_df.sort_values(by='Organism/Name', inplace=True)
 taxonomy_df.replace('unassigned', np.nan, inplace=True)
-taxonomy_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v85.reference.csv')
+taxonomy_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v88.reference.csv')
 taxonomy_df.to_csv(taxonomy_fp, index=False)
 
 # Filter RefSeq proteins by prokaryotes-only
@@ -651,14 +692,14 @@ for i, series in final_refseq.iterrows():
 print(len(protein2contig_dict))
 print(len(proteins_to_write))
 
-viral_refseq_faa_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v85.faa')
+viral_refseq_faa_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v88.faa')
 with open(viral_refseq_faa_fp, 'w') as viral_refseq_faa_fh:
     SeqIO.write(proteins_to_write, viral_refseq_faa_fh, 'fasta')
 
 # WRITE OUT GENE-TO-CONTIGS FILE - for both database AND benchmarking inputs
 protein2contig_df = pd.DataFrame.from_dict(protein2contig_dict, orient='index')
 protein2contig_df.sort_values(by='contig_id', inplace=True)
-protein2contig_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv')
+protein2contig_fp = os.path.join(refseq_dir, 'ViralRefSeq-prokaryotes-v88.protein2contig.csv')
 protein2contig_df.to_csv(protein2contig_fp, index=False)
 
 print('Program Complete')

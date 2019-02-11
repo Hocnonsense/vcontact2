@@ -234,6 +234,8 @@ def main(args):
     # In essence, by allowing the opportunity to use "raw proteins" and have vConTACT handle everything, the
     # functionality provided by vConTACT-PCs is eliminated.
 
+    print("\n\n" + "{:-^80}".format("Pre-Analysis"))
+
     # Checks
     cluster_one_fp = args.cluster_one
     if ('ClusterONE' in args.pcs_mode) or ('ClusterONE' in args.vc_mode):
@@ -272,6 +274,11 @@ def main(args):
     # Global
     cpus = args.threads
     logger.info('Identified {} CPUs'.format(cpus))
+    logger.info('Using reference database: {}'.format(args.db))
+
+    if args.db == 'None':
+        logger.warning('No reference database selected! vConTACT2 will be unable to run taxonomy-based performance '
+                       'metrics unless taxonomic information is included in the --proteins-fp file.')
 
     # Prepare output directory
     output_dir = args.output_dir
@@ -281,7 +288,7 @@ def main(args):
     else:
         logger.info("Using existing directory {}.".format(output_dir))
 
-    print("\n\n" + "{:-^80}".format("Pre-Analysis"))
+    print("\n\n" + "{:-^80}".format("Reference databases"))
 
     # Merge potential reference databases to source
     db_root = pkg_resources.resource_filename('vcontact', 'data/')
@@ -293,9 +300,10 @@ def main(args):
         'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.faa.gz')
     }
 
-    # Refactor for later?
     # Check if exists
     if args.contigs and args.pcs and args.pcprofiles:
+        logger.info("Identified legacy (v1) vConTACT files. Reference databases will be ignored. Taxonomy will be "
+                    "ignored unless included in legacy files.")
         contigs_fp = os.path.join(output_dir, 'vConTACT_contigs.csv')
         if not os.path.exists(contigs_fp):
             shutil.copy(args.contigs, contigs_fp)
@@ -305,6 +313,11 @@ def main(args):
         profiles_fp = os.path.join(output_dir, 'vConTACT_profiles.csv')
         if not os.path.exists(profiles_fp):
             shutil.copy(args.pcprofiles, profiles_fp)
+
+        # Load
+        contigs_df = pd.read_csv(contigs_fp, header=0, index_col=None)
+        clusters_df = pd.read_csv(pcs_fp, header=0, index_col=None)
+        profiles_df = pd.read_csv(profiles_fp, header=0, index_col=None)
 
     else:
 
@@ -517,10 +530,7 @@ def main(args):
     # save
     profiles_csv = {"matrix": matrix, "singletons": singletons}
 
-    # contigs_csv_df, pcs_csv_df, profiles_csv = vcontact.loader.csv(os.path.join(output_dir, '{}_contigs.csv'.format(name)),
-    #                                                                os.path.join(output_dir, '{}_pcs.csv'.format(name)),
-    #                                                                profiles_fp, output_dir, name, args.force_overwrite)
-
+    taxonomies = ['Organism/Name', 'origin', 'order', 'family', 'genus']
     if args.db != 'None':
         print("\n\n" + "{:-^80}".format("Adding Taxonomy"))
 
@@ -535,7 +545,7 @@ def main(args):
         ref_df = pd.read_csv(ref, header=0)  # , index_col=0 not with v85 and above
         ref_df['origin'] = 'RefSeq-85'
 
-        ref_tax = ref_df[['Organism/Name', 'origin', 'order', 'family', 'genus']]
+        ref_tax = ref_df[taxonomies]
         ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')  # Ensure c1 can process names
 
         merged_df = contigs_csv_df.merge(ref_tax, how='left', left_on='contig_id', right_on='Organism/Name')
@@ -598,7 +608,6 @@ def main(args):
         logger.error("Error in contig clustering")
         logger.exception(e)
 
-    # Add hierarchical clustering
     try:
         vc = vcontact.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=options.optimize)
     except Exception as e:

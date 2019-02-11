@@ -102,13 +102,15 @@ class ViralClusters(object):
             self.results[dist] = adj_contigs
 
             # Performance metrics
-            evaluations = vcontact.evaluations.Evaluations(adj_contigs, levels=['genus'],
-                                                           focus='rev_pos_cluster')
-            ppv = evaluations.tax_metrics['genus']['PPV']
-            sensitivity = evaluations.tax_metrics['genus']['Sensitivity']
-            accuracy = evaluations.tax_metrics['genus']['Accuracy']
+            if 'genus' in self.levels:  # If there's actual taxonomy to optimize
+                evaluations = vcontact.evaluations.Evaluations(adj_contigs, levels=['genus'],  focus='rev_pos_cluster')
+                ppv = evaluations.tax_metrics['genus']['PPV']
+                sensitivity = evaluations.tax_metrics['genus']['Sensitivity']
+                accuracy = evaluations.tax_metrics['genus']['Accuracy']
 
-            self.metrics.loc[len(self.metrics), summary_headers] = dist, sensitivity, ppv, accuracy
+                self.metrics.loc[len(self.metrics), summary_headers] = dist, sensitivity, ppv, accuracy
+            else:
+                self.metrics.loc[len(self.metrics), summary_headers] = dist, 0, 0, 0
 
         # Find best composite score
         self.metrics['Composite Score'] = self.metrics[['Clustering-wise sensitivity', 'Clustering-wise PPV',
