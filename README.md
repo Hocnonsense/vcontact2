@@ -137,6 +137,15 @@ git clone bitbucket.org/MAVERICLab/vcontact2
 cd vcontact2 && pip install .
 ```
 
+You might encounter an issue where pip install doesn't install ALL of the databases. In this case, you'll have to 
+manually copy the database files to wherever pip is installing vContact2 to.
+
+```bash
+cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* /usr/local/lib/python3.7/site-packages/vcontact/data/
+```
+
+*Your installation path might be at a different location.*
+
 ## Usage
 
 #### For the impatient
