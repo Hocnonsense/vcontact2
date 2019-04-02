@@ -19,12 +19,13 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
 
     node_table = contigs.copy()
 
-    columns = ['VC', 'Size', 'Internal Weight', 'External Weight', 'Quality', 'P-value', 'Cohesiveness', 'Min Dist',
-               'Max Dist', 'Total Dist', 'Below Thres', 'Confidence', 'Avg Dist', 'Genera', 'Families', 'Orders',
-               'Members']
+    columns = ['VC', 'Size', 'Internal Weight', 'External Weight', 'Quality', 'P-value', 'Min Dist',
+               'Max Dist', 'Total Dist', 'Below Thres', 'Taxon Prediction Score', 'Avg Dist', 'Genera', 'Families',
+               'Orders', 'Members']
     summary_df = pd.DataFrame(columns=columns)
 
-    taxon_columns = ['Level', 'Taxon', 'Min Dist', 'Max Dist', 'Total Dist', 'Below Thres', 'Confidence', 'Avg Dist']
+    taxon_columns = ['Level', 'Taxon', 'Min Dist', 'Max Dist', 'Total Dist', 'Below Thres', 'Taxon Prediction Score',
+                     'Avg Dist']
     taxonomy_df = pd.DataFrame(columns=taxon_columns)
 
     num_contigs = len(node_table)
@@ -65,18 +66,18 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
 
         # Oh math, logs additive if to same base
-        sig_scores = selected_edges['weight'].tolist()
-        raw_pvals = []
-        for sig_score in sig_scores:
-            h_pval = sig_score + logT
-            z = math.pow(10, -h_pval)  # 3.348269070478552e+66
-
-            raw_pvals.append(z)
-        # https://stackoverflow.com/questions/13840379/how-can-i-multiply-all-items-in-a-list-together-with-python
-        try:
-            cohesiveness = reduce(lambda x, y: x * y, raw_pvals)
-        except Exception:
-            cohesiveness = 0
+        # sig_scores = selected_edges['weight'].tolist()
+        # raw_pvals = []
+        # for sig_score in sig_scores:
+        #     h_pval = sig_score + logT
+        #     z = math.pow(10, -h_pval)  # 3.348269070478552e+66
+        #
+        #     raw_pvals.append(z)
+        # # https://stackoverflow.com/questions/13840379/how-can-i-multiply-all-items-in-a-list-together-with-python
+        # try:
+        #     cohesiveness = reduce(lambda x, y: x * y, raw_pvals)
+        # except Exception:
+        #     cohesiveness = 0
 
         # Taxonomies
         taxonomies = {
@@ -165,11 +166,11 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             pval = 1
 
         try:
-            summary_df.loc[len(summary_df), columns] = 'VC_{}'.format(contig_cluster), size, internal_weights, external_weights, quality, \
-                                                     pval, cohesiveness, min_dist, max_dist, dist.size, \
-                                                     thres_counts, frac, average_dist, len(taxonomies['genus']), \
-                                                     len(taxonomies['family']), len(taxonomies['order']),\
-                                                     ','.join(cluster_contigs)
+            summary_df.loc[len(summary_df), columns] = 'VC_{}'.format(contig_cluster), size, internal_weights, \
+                                                       external_weights, quality, pval, min_dist, max_dist, \
+                                                       dist.size, thres_counts, frac, average_dist, \
+                                                       len(taxonomies['genus']), len(taxonomies['family']), \
+                                                       len(taxonomies['order']), ','.join(cluster_contigs)
         except Exception as e:
             logger.error(e)
             exit(1)
@@ -182,7 +183,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     summary_df = summary_df[summary_df['items'] > 2]
 
     node_columns = ['Genome', 'Order', 'Family', 'Genus', 'VC', 'VC Status', 'Size', 'VC Subcluster',
-                    'VC Subcluster Size', 'Quality', 'Adj P-value', 'Cohesiveness Score', 'Topology Confidence Score',
+                    'VC Subcluster Size', 'Quality', 'Adj P-value', 'Topology Confidence Score',
                     'Genera in VC', 'Families in VC', 'Orders in VC', 'Genus Confidence Score']
     node_summary_df = pd.DataFrame(columns=node_columns)
 
@@ -223,10 +224,10 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
         subcluster_size = len(summary_df.loc[summary_df['VC'] == subcluster]['Members'].item().split(','))
         quality = genome_s['Quality']
         adj_pval = 1.0 - float(genome_s['P-value'])
-        cohesiveness = min(400, np.nan_to_num(-np.log10(genome_s['Cohesiveness'])))
+        # cohesiveness = min(400, np.nan_to_num(-np.log10(genome_s['Cohesiveness'])))
         vc_avg_dist = genome_s['Avg Dist']
-        vc_conf = genome_s['Confidence']
-        vc_overall_conf = quality * adj_pval * vc_conf
+        vc_conf = genome_s['Taxon Prediction Score']
+        vc_overall_conf = quality * adj_pval
         vc_genera = genome_s['Genera']
         vc_families = genome_s['Families']
         vc_orders = genome_s['Orders']
@@ -238,13 +239,13 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
             genus_conf = vc_conf
         else:
             genus_s = genus_df.iloc[0]
-            genus_conf = genus_s['Confidence']
+            genus_conf = genus_s['Taxon Prediction Score']
 
         try:
-            node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, 'Clustered', size, subcluster, \
-                                                     subcluster_size, quality, adj_pval, cohesiveness, \
-                                                     vc_overall_conf, vc_genera, vc_families, vc_orders, \
-                                                     genus_conf
+            node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, 'Clustered',\
+                                                                      size, subcluster, subcluster_size, quality, \
+                                                                      adj_pval, vc_overall_conf, \
+                                                                      vc_genera, vc_families, vc_orders, genus_conf
         except Exception as e:
             logger.error(e)
             exit(1)
