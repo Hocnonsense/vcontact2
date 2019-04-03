@@ -8,6 +8,9 @@ BootStrap: debootstrap
 OSVersion: stable
 MirrorURL: http://ftp.us.debian.org/debian/
 
+%environment
+    export PATH=/miniconda3/bin:$PATH
+
 %runscript
     exec vcontact "$@"
 
@@ -18,45 +21,28 @@ MirrorURL: http://ftp.us.debian.org/debian/
     
     # Install miniconda to save dependency nightmares
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    bash Miniconda3-latest-Linux-x86_64.sh -b -f -p /usr/local/
+    bash Miniconda3-latest-Linux-x86_64.sh -b -f -p /miniconda3/
     rm Miniconda3-latest-Linux-x86_64.sh
     
     conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil
+    conda install -y -c bioconda mcl blast diamond
     
     pip install setuptools-markdown
     
     # Install vContact
-    git clone https://bolduc@bitbucket.org/MAVERICLab/vcontact2.git
+    git clone https://bitbucket.org/MAVERICLab/vcontact2.git
     cd vcontact2 && pip install .
 
     # Bug with setuptools?
-    cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* /usr/local/lib/python3.7/site-packages/vcontact/data/
-    
-    # Install MCL
-    cd / && wget http://micans.org/mcl/src/mcl-latest.tar.gz
-    tar xf mcl-latest.tar.gz && cd mcl-14-137 && ./configure --prefix /usr/local/ && make install
-    rm -rf /mcl-latest.tar.gz
-    
+    cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
+
     # 'Install' ClusterONE
     cd / && wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
-    mv /cluster_one-1.0.jar $BINPATH
-    
-    # Create bash? or could adjust vContact to look at $BINPATH?
-    echo -e '#!/bin/bash\njava -jar /usr/local/bin/cluster_one-1.0.jar "$@"\n' > /usr/local/bin/cluster_one-1.0.sh
-    chmod +x $BINPATH/cluster_one-1.0.sh
-    
-    # BLAST+
-    wget --no-verbose ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
-    tar xf ncbi-blast-2.6.0+-x64-linux.tar.gz && cd ncbi-blast-2.6.0+
-    cp bin/* $BINPATH && cd / && rm -rf ncbi-blast-2.6.0+*
-    
-    # Diamond
-    wget --no-verbose http://github.com/bbuchfink/diamond/releases/download/v0.9.10/diamond-linux64.tar.gz
-    tar xf diamond-linux64.tar.gz && cp diamond $BINPATH
-    rm -rf diamond-linux64.tar.gz
-    
+    mv /cluster_one-1.0.jar $BINPATH && chmod +x $BINPATH/cluster_one-1.0.jar
+
     # Clean stuff up
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-    
+    conda clean --yes --tarballs --packages --source-cache
+
     # TACC's Stampede compliant, for iVirus/CyVerse
     mkdir /home1 && mkdir /scratch && mkdir /work
