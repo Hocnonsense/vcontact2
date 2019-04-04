@@ -15,7 +15,73 @@ from pprint import pprint
 logger = logging.getLogger(__name__)
 
 
-def final_summary(folder, contigs, network, profiles, viral_clusters):
+def find_excluded(merged, ntw, c1):
+    """
+    Temporary placement of singleton, overlap and outlier detection. These three components should be refactored
+    "closer" to the locations where they'd be initially generated. Overlap genomes *are already identified* and saved
+    in a dataframe, but that's only for overlapping genome removal, the dataframe/overlaps are never saved to a file.
+    The outliers/singletons require a multi-step process, as ClusterONE does not state which genomes are outliers, so
+    they must be back-calculated.
+
+    singletons = merged - ntw
+    outliers = ntw - c1
+    overlap = c1 overlaps
+
+    :return:
+    """
+
+    # Get list of all genomes
+    merged_df = pd.read_csv(merged, header=0, index_col=0)
+    merged_df.rename(columns={'order': 'Order', 'family': 'Family', 'genus': 'Genus', 'contig_id': 'Genome'},
+                     inplace=True)
+    contigs = set(merged_df['Genome'].tolist())
+
+    merged_df['VC Status'] = np.nan
+
+    # Get list of genomes that made it to the network, those that didn't did not pass the thresholds and => singletons
+    network_df = pd.read_csv(ntw, header=None, names=['source', 'target', 'weight'], index_col=None, delimiter=' ')
+    nodes = set(network_df['source'].tolist() + network_df['target'].tolist())
+
+    # Set up final destination for singletons
+    singletons = contigs - nodes
+    merged_df.loc[merged_df['Genome'].isin(singletons), 'VC Status'] = 'Singleton'
+
+    # Overlaps requite re-reading the clusters file, because of course, I don't save it earlier
+    c1_df = pd.read_csv(c1, header=0)
+
+    # Need to adjust cluster num to match pos so it works, but doesn't need to be done here
+    c1_df['Cluster'] = c1_df['Cluster'].astype(str)
+
+    # Don't need to go through and re-name and format because we already have all members (from contigs)
+    labels = {}
+
+    for cluster, cluster_df in c1_df.groupby(by='Cluster'):  # Either this or 2 lists + enumerate
+        formatter = "VC_{}".format(cluster)
+        members = cluster_df['Members'].iloc[0].rstrip().split()
+        for member in members:
+            if member not in labels:
+                labels[member] = formatter
+            else:
+                labels[member] = ';'.join([labels[member], formatter])
+
+    # Overlaps. Can just use key (genome name) and set the Destination to Overlap, but it's just a little more work to
+    # actually give the clusters that overlapped
+    overlaps = [(k, v) for k, v in labels.items() if ';' in v]
+    overlap_members = [k for (k, v) in overlaps]
+    overlap_clusters = ['Overlap ({})'.format(str(v).replace(';', '/')) for (k, v) in overlaps]
+
+    merged_df.loc[merged_df['Genome'].isin(overlap_members), 'VC Status'] = overlap_clusters
+
+    # Filter to remove non-essential data
+    # Is it present?
+    taxonomies = [taxon for taxon in ['Order', 'Family', 'Genus'] if taxon in merged_df.columns.tolist()]
+    merged_df = merged_df[['Genome', 'VC Status'] + taxonomies]
+    merged_df = merged_df[pd.notnull(merged_df['VC Status'])]
+
+    return merged_df
+
+
+def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
 
     node_table = contigs.copy()
 
@@ -254,5 +320,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters):
     node_summary_df['Adj P-value'] = node_summary_df['Adj P-value'].apply(lambda x: round(x, 8))
     node_summary_df['Genus Confidence Score'] = node_summary_df['Genus Confidence Score'].apply(lambda x: round(x, 4))
     node_summary_df['Topology Confidence Score'] = node_summary_df['Topology Confidence Score'].apply(lambda x: round(x, 4))
+
+    node_summary_df = node_summary_df.append(excluded)[node_summary_df.columns.tolist()]
+    node_summary_df[['Order', 'Family', 'Genus']] = node_summary_df[['Order', 'Family', 'Genus']].fillna('Unassigned')
 
     node_summary_df.to_csv(os.path.join(folder, 'genome_by_genome_overview.csv'))

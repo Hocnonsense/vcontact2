@@ -695,10 +695,19 @@ def main(args):
             logger.error(("ktImportText {} failed ({}). \n (Is krona executable in the PATH?). You can still do it "
                           "manually.").format(krona_file, e))
 
-    # Final summary output
+    # Final summary outputs
+
+    # Collect all the genomes that failed to make it to this point in the analysis
+    try:
+        excluded = vcontact.exports.summaries.find_excluded(merged_fp, os.path.join(output_dir, gc.name + '.ntw'),
+                                                            os.path.join(output_dir, gc.name + '.clusters'))
+    except Exception as e:
+        logger.error("Error in identifying excluded contigs: {}".format(e))
+
+    # Final cleanup and adding back in those genomes
     try:
         vcontact.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
-                                                 profiles_fp, vc)
+                                                 profiles_fp, vc, excluded)
     except Exception as e:
         logger.error("Error in exporting the final summary data: {}".format(e))
 
