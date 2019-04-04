@@ -70,7 +70,12 @@ def find_excluded(merged, ntw, c1):
     overlap_members = [k for (k, v) in overlaps]
     overlap_clusters = ['Overlap ({})'.format(str(v).replace(';', '/')) for (k, v) in overlaps]
 
-    merged_df.loc[merged_df['Genome'].isin(overlap_members), 'VC Status'] = overlap_clusters
+    # merged_df.loc[merged_df['Genome'].isin(overlap_members), 'VC Status'] = overlap_clusters
+
+    # Outliers = ntw - c1, shockingly, there's 0 'overlap' between outliers and overlaps
+    outliers = nodes - set(labels.keys())  # Labels = all genomes in clusterONE output, regardless of clustering status
+    # Nodes = all genomes in network
+    merged_df.loc[merged_df['Genome'].isin(outliers), 'VC Status'] = 'Outlier'
 
     # Filter to remove non-essential data
     # Is it present?
