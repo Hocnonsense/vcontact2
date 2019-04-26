@@ -62,6 +62,7 @@ class ContigCluster(object):
         self.folder = folder
         self.one_opts = one_args
         self.cluster_one = cluster_one
+        self.df = None  # Keep copy of contig dataframe to identify singletons, outliers and overlaps later
 
         if isinstance(profiles, pcprofiles.PCProfiles):
             self.pcs = profiles.pcs.copy()
@@ -298,7 +299,7 @@ class ContigCluster(object):
         """ Load clusters from ClusterONE results
 
         Args:
-            one_fh (buffer): File buffer to the ClusterONE result file.
+            one_fn (buffer): File buffer to the ClusterONE result file.
 
         Returns:
             df (pandas.DataFrame): give for each contig cluster
@@ -319,7 +320,7 @@ class ContigCluster(object):
         clusters_df['Cluster'] = clusters_df['Cluster'].astype(str)
 
         c = [line.rstrip().split() for line in clusters_df['Members']]
-        c = [x for x in c if len(c) > 1]  # Drop singletons
+        c = [x for x in c if len(c) > 1]  # ClusterONE won't export singletons, they'll be outliers
         nb_clusters = len(c)
         formatter = "CC_{{:>0{}}}".format(int(round(np.log10(nb_clusters)) + 1))
         name = [formatter.format(str(i)) for i in range(nb_clusters)]
@@ -343,8 +344,14 @@ class ContigCluster(object):
                 else:  # If has been seen, along with others (NOTE the (s) at suffix)
                     self.contigs.loc[n, "pos_clusters"] = ';'.join([str(self.contigs.loc[n, "pos_clusters"]), str(i)])
 
+        self.df = self.contigs.copy()
+
+        # Remove overlapping contigs
+        self.contigs.loc[pd.notnull(self.contigs["pos_clusters"]), "pos_cluster"] = np.nan
+
         # Side-effect of casting multiple pos as string (above), still need to process non-overlapping members
         self.contigs.loc[self.contigs['pos_cluster'].notnull(), 'pos_cluster'] = self.contigs.loc[self.contigs['pos_cluster'].notnull(), 'pos_cluster'].astype(int)
+
         self.contigs.reset_index(inplace=True)
 
         return pd.DataFrame({"id": name, "size": size, "pos": pos}), c

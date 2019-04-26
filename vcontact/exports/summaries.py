@@ -15,7 +15,7 @@ from pprint import pprint
 logger = logging.getLogger(__name__)
 
 
-def find_excluded(merged, ntw, c1):
+def find_excluded(merged, ntw, c1_df):
     """
     Temporary placement of singleton, overlap and outlier detection. These three components should be refactored
     "closer" to the locations where they'd be initially generated. Overlap genomes *are already identified* and saved
@@ -26,6 +26,10 @@ def find_excluded(merged, ntw, c1):
     singletons = merged - ntw
     outliers = ntw - c1
     overlap = c1 overlaps
+
+    merged: db + user sequences, represents all genomes that went into the analysis
+    ntw: network, represents genomes in network, otherwise they were excluded by threshold
+
 
     :return:
     """
@@ -46,36 +50,27 @@ def find_excluded(merged, ntw, c1):
     singletons = contigs - nodes
     merged_df.loc[merged_df['Genome'].isin(singletons), 'VC Status'] = 'Singleton'
 
-    # Overlaps requite re-reading the clusters file, because of course, I don't save it earlier
-    c1_df = pd.read_csv(c1, header=0)
+    # Overlaps
+    overlap_df = c1_df.loc[pd.notnull(c1_df["pos_clusters"])].copy()
 
-    # Need to adjust cluster num to match pos so it works, but doesn't need to be done here
-    c1_df['Cluster'] = c1_df['Cluster'].astype(str)
+    def update_VCs(string: str):
 
-    # Don't need to go through and re-name and format because we already have all members (from contigs)
-    labels = {}
+        pieces = string.split(';')
+        updates = [int(piece)+1 for piece in pieces]
+        str_fmt = '/'.join(['VC_{}'.format(update) for update in updates])
 
-    for cluster, cluster_df in c1_df.groupby(by='Cluster'):  # Either this or 2 lists + enumerate
-        formatter = "VC_{}".format(cluster)
-        members = cluster_df['Members'].iloc[0].rstrip().split()
-        for member in members:
-            if member not in labels:
-                labels[member] = formatter
-            else:
-                labels[member] = ';'.join([labels[member], formatter])
+        return str_fmt
 
-    # Overlaps. Can just use key (genome name) and set the Destination to Overlap, but it's just a little more work to
-    # actually give the clusters that overlapped
-    overlaps = [(k, v) for k, v in labels.items() if ';' in v]
-    overlap_members = [k for (k, v) in overlaps]
-    overlap_clusters = ['Overlap ({})'.format(str(v).replace(';', '/')) for (k, v) in overlaps]
-
-    # merged_df.loc[merged_df['Genome'].isin(overlap_members), 'VC Status'] = overlap_clusters
+    overlap_df['pos_clusters'] = overlap_df['pos_clusters'].apply(update_VCs)
+    overlap_strs = ['Overlap ({})'.format(v) for (k, v) in overlap_df['pos_clusters'].items()]
+    merged_df.loc[merged_df['Genome'].isin(overlap_df.index.tolist()), 'VC Status'] = overlap_strs
 
     # Outliers = ntw - c1, shockingly, there's 0 'overlap' between outliers and overlaps
-    outliers = nodes - set(labels.keys())  # Labels = all genomes in clusterONE output, regardless of clustering status
+    # Nodes that made it to the network stage (i.e. not singletons) that WEREN'T in the c1 clusters file
+    c1_members = nodes - set(c1_df[pd.notnull(c1_df['pos_cluster'])].index.tolist())
+
     # Nodes = all genomes in network
-    merged_df.loc[merged_df['Genome'].isin(outliers), 'VC Status'] = 'Outlier'
+    merged_df.loc[merged_df['Genome'].isin(c1_members), 'VC Status'] = 'Outlier'
 
     # Filter to remove non-essential data
     # Is it present?
@@ -135,20 +130,6 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         cluster_contigs = contig_cluster_group['contig_id'].unique()  # WARN network is ~
         selected_edges = edges_df[
             (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
-
-        # Oh math, logs additive if to same base
-        # sig_scores = selected_edges['weight'].tolist()
-        # raw_pvals = []
-        # for sig_score in sig_scores:
-        #     h_pval = sig_score + logT
-        #     z = math.pow(10, -h_pval)  # 3.348269070478552e+66
-        #
-        #     raw_pvals.append(z)
-        # # https://stackoverflow.com/questions/13840379/how-can-i-multiply-all-items-in-a-list-together-with-python
-        # try:
-        #     cohesiveness = reduce(lambda x, y: x * y, raw_pvals)
-        # except Exception:
-        #     cohesiveness = 0
 
         # Taxonomies
         taxonomies = {
