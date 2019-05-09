@@ -116,7 +116,7 @@ tar xf diamond-linux64.tar.gz && cp diamond /usr/local/bin/
 Finally, install vConTACT2 from source file.
 
 ```bash
-wget https://bitbucket.org/bolduc/vcontact2/get/master.tar.gz
+wget https://bitbucket.org/MAVERICLab/vcontact2/get/master.tar.gz
 tar xvf MAVERICLab-vcontact2-XXXXXXX.tar.gz
 cd MAVERICLab-vcontact2-XXXXXXX && pip install .
 ```
