@@ -48,7 +48,8 @@ sudo singularity build vConTACT2.simg vConTACT2.def
 ```
 
 The build process can take a significant amount of time depending on available hardware and network speed. Builds can 
-take anywhere from 5 to 30 minutes. If you see *Finalizing Singularity container* at the end of bootstrapping, you're probably good to go.
+take anywhere from 5 to 30 minutes. If you see *Finalizing Singularity container* at the end of bootstrapping, you're 
+probably good to go.
 
 Once built, the container can be run via:
 
@@ -61,14 +62,17 @@ singularity run vConTACT2.img <args>
 We highly recommend using a python environment when installing this software, as dependency versions can (and often do)
  conflict with each other.
 
-For this, we'll be installing everything into /usr/local/bin. If user permissions don't allow installation to that 
-location, you can try $HOME/bin (which will use the bin directory under your home folder).
+For this, we'll be installing everything into a single directory that the user has access to. This is generally the 
+user's home directory. In the example, we'll be installing to the "conda" directory under the user's home folder.
 
-First, grab our favorite manager, Anaconda/Miniconda and install.
+First, grab our favorite manager, Anaconda/Miniconda and install. If it offers the option of adding the installation to 
+the user's $PATH, then do so. Otherwise, follow the instructions (at the end of the install) to ensure the install is 
+activated.
 
 ```bash
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
+# Install into $HOME/conda
 conda create --name vContact2 python=3
 source activate vContact2
 ```
@@ -85,14 +89,14 @@ Install MCL. (The "&&" is just a shortcut to proceed to the next step if there a
 wget http://micans.org/mcl/src/mcl-latest.tar.gz
 tar xf mcl-latest.tar.gz
 cd mcl-14-137
-./configure --prefix /usr/local/ && make install
+./configure --prefix $HOME/conda/bin/ && make install
 ```
 
 Install ClusterONE
 
 ```bash
 wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
-cp cluster_one-1.0.jar /usr/local/bin/
+cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
 
 Install BLAST+
@@ -101,7 +105,7 @@ Install BLAST+
 wget --no-verbose ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
 tar xf ncbi-blast-2.6.0+-x64-linux.tar.gz
 cd ncbi-blast-2.6.0+
-cp bin/* /usr/local/bin/
+cp bin/* $HOME/conda/bin/
 ```
 
 Install DIAMOND. DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows 
@@ -110,7 +114,7 @@ analyses have been performed to recommend.*
 
 ```bash
 wget --no-verbose http://github.com/bbuchfink/diamond/releases/download/v0.9.10/diamond-linux64.tar.gz
-tar xf diamond-linux64.tar.gz && cp diamond /usr/local/bin/
+tar xf diamond-linux64.tar.gz && cp diamond $HOME/conda/bin/
 ```
 
 Finally, install vConTACT2 from source file.
@@ -120,6 +124,9 @@ wget https://bitbucket.org/MAVERICLab/vcontact2/get/master.tar.gz
 tar xvf MAVERICLab-vcontact2-XXXXXXX.tar.gz
 cd MAVERICLab-vcontact2-XXXXXXX && pip install .
 ```
+
+(Some users have mentioned that their version of pip installs to a non-conda location. In this case, run "pip install 
+--prefix=$HOME/conda/bin)
 
 Alternatively, install from bitbucket.
 
@@ -141,7 +148,7 @@ You might encounter an issue where pip install doesn't install ALL of the databa
 manually copy the database files to wherever pip is installing vContact2 to.
 
 ```bash
-cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* /usr/local/lib/python3.7/site-packages/vcontact/data/
+cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* $HOME/conda/lib/python3.7/site-packages/vcontact/data/
 ```
 
 *Your installation path might be at a different location.*
@@ -156,16 +163,23 @@ Singularity
 singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
+"--c1-bin" *must* point to the jarfile. For the singularity image, it's been set up to be located in /usr/local/bin/
+
 Local installs
 
 ```bash
 vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
+"--c1-bin" *must* point to the jarfile, not to the directory it's in.
+
 ## Input files and formats
 
 vConTACT2 tries to alleviate some of the challenges created by the complex file format of the original vConTACT and 
-provides a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in providing files at various points along the processing pipeline. Generally speaking, if a user provides an intermediary file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial recovery and re-start of any interrupted analysis.
+provides a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in 
+providing files at various points along the processing pipeline. Generally speaking, if a user provides an intermediary 
+file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial 
+recovery and re-start of any interrupted analysis.
 
 ##### If starting from raw proteins
 
@@ -253,7 +267,8 @@ Existing vConTACT users will recognize these are the output files from vConTACT-
  (with improved options), we still want to be able to support analyses performed with the original vConTACT (and if 
  users wish to compare v1 and v2).
 
-**pcs.csv**: File with information about each PC. The size of the PC, how many ORFs/genes were annotated, and counts these annotations for the "keywords" column.
+**pcs.csv**: File with information about each PC. The size of the PC, how many ORFs/genes were annotated, and counts 
+these annotations for the "keywords" column.
 
 ```
 pc_id,size,annotated,keys
@@ -269,7 +284,8 @@ PC_00008,101,101.0,"RnlB RNA ligase 2 (15); RNA ligase 2 (41); putative RnlB RNA
 
 Note: parentheses ("") for rows that include ","
 
-**profiles.csv**: Each ORF gets assigned to a PC (unless it's a singleton, in which case it's empty) and that ORF "position" inherits the PC it was assigned.
+**profiles.csv**: Each ORF gets assigned to a PC (unless it's a singleton, in which case it's empty) and that ORF 
+"position" inherits the PC it was assigned.
 
 ```
 contig_id,pc_id
@@ -317,14 +333,14 @@ VC-by-VC and genome-by-genome processed, as well as any reference databases used
 
 ## Citation
 
-If you find vContact2 useful, please cite:
+If you find vConTACT2 useful, please cite our newly published article in Nature Biotech!:
 
 Bin Jang, H., Bolduc, B., Zablocki, O., Kuhn, J. H., Roux, S., Adriaenssens, E. M., … Sullivan, M. B. (2019). Taxonomic assignment of uncultivated prokaryotic virus genomes is enabled by gene-sharing networks. Nature Biotechnology. https://doi.org/10.1038/s41587-019-0100-8
 
-This work was originally based on:
+The theory and original code this work was based on:
 
 Bolduc, B., Jang, H. Bin, Doulcier, G., You, Z., Roux, S., & Sullivan, M. B. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243
 
 ## Known Issues
 
-
+* The resume function is still a bit buggy. In the case of a job failure, please start *with a fresh* output directory.
