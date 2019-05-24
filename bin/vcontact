@@ -67,7 +67,9 @@ inputs.add_argument('--db', type=str,
                              'ProkaryoticViralRefSeq85-ICTV',
                              'ProkaryoticViralRefSeq85-Merged',
                              'ProkaryoticViralRefSeq88-Merged',
-                             'ArchaeaViralRefSeq85-Merged'],
+                             'ProkaryoticViralRefSeq94-Merged'
+                             'ArchaeaViralRefSeq85-Merged',
+                             'ArchaeaViralRefSeq94-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
                          'aware that there will be no references included in the analysis.')
@@ -79,7 +81,7 @@ inputs.add_argument('--vcs-mode', type=str, choices=['ClusterONE', 'MCL'], defau
                     help='Whether to use ClusterONE or MCL for Viral Cluster (VC) generation.')
 
 inputs.add_argument('--c1-bin', type=str, dest='cluster_one',
-                    help='Location for clusterONE java file. Path always used if ClusterONE used.')
+                    help='Location for clusterONE java file. This MUST SPECIFY the full path to "cluster_one-1.0.jar".')
 
 inputs.add_argument('--blastp-bin', type=str, dest='blastp_fp',
                     help='Location for BLASTP executable. Path only used if vConTACT cant find in $PATH.')
