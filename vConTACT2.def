@@ -34,7 +34,7 @@ MirrorURL: http://ftp.us.debian.org/debian/
     cd vcontact2 && pip install .
 
     # Bug with setuptools?
-    cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
+    cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
 
     # 'Install' ClusterONE
     cd / && wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
