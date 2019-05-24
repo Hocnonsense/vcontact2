@@ -295,9 +295,11 @@ def main(args):
 
     ref_dbs = {
         'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
+        'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.faa.gz'),
         'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
         'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.faa.gz'),
-        'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.faa.gz')
+        'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.faa.gz'),
+        'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.faa.gz')
     }
 
     # Check if exists
@@ -387,9 +389,11 @@ def main(args):
         logger.info("Loading proteins...")
         ref_g2c = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
+            'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.protein2contig.csv'),
             'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
             'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.protein2contig.csv'),
-            'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.protein2contig.csv')
+            'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.protein2contig.csv'),
+            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.protein2contig.csv')
         }
 
         usr_gene2genome_fp = args.proteins_fp
@@ -536,9 +540,11 @@ def main(args):
 
         ref_tax = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.ICTV-reference.csv'),
+            'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.Merged-reference.csv'),
             'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
             'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.Merged-reference.csv'),
-            'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.Merged-reference.csv')
+            'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.Merged-reference.csv')
         }
 
         ref = ref_tax[args.db]
