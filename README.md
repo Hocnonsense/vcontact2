@@ -81,15 +81,7 @@ Install python dependencies.
 
 ```bash
 conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil
-```
-
-Install MCL. (The "&&" is just a shortcut to proceed to the next step if there aren't problems with the first.)
-
-```bash
-wget http://micans.org/mcl/src/mcl-latest.tar.gz
-tar xf mcl-latest.tar.gz
-cd mcl-14-137
-./configure --prefix $HOME/conda/bin/ && make install
+conda install -y -c bioconda mcl blast diamond
 ```
 
 Install ClusterONE
@@ -99,23 +91,9 @@ wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
 cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
 
-Install BLAST+
-
-```bash
-wget --no-verbose ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
-tar xf ncbi-blast-2.6.0+-x64-linux.tar.gz
-cd ncbi-blast-2.6.0+
-cp bin/* $HOME/conda/bin/
-```
-
-Install DIAMOND. DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows 
+Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows 
 little/no difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house 
 analyses have been performed to recommend.*
-
-```bash
-wget --no-verbose http://github.com/bbuchfink/diamond/releases/download/v0.9.10/diamond-linux64.tar.gz
-tar xf diamond-linux64.tar.gz && cp diamond $HOME/conda/bin/
-```
 
 Finally, install vConTACT2 from source file.
 
@@ -137,21 +115,22 @@ cd vcontact2 && pip install .
 
 #### Pip-based installation (Mac/Linux)
 
-Pip should automatically install vConTACT2 alongside all of its dependencies, provided python3.6 is correctly installed.
+Pip should automatically install vConTACT2 alongside all of its dependencies, provided python3.x is correctly installed.
 
 ```bash
 git clone bitbucket.org/MAVERICLab/vcontact2
 cd vcontact2 && pip install .
 ```
 
-You might encounter an issue where pip install doesn't install ALL of the databases. In this case, you'll have to 
+You might encounter an issue where pip install doesn't install ALL of the database files. In this case, you'll have to 
 manually copy the database files to wherever pip is installing vContact2 to.
 
 ```bash
-cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v8?.* $HOME/conda/lib/python3.7/site-packages/vcontact/data/
+cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3.7/site-packages/vcontact/data/
 ```
 
-*Your installation path might be at a different location.*
+*Your installation path might be at a different location.* Usually it's some form of 
+"<where-you-installed-conda>/lib/python3.X/site-packages/vcontact/data/"
 
 ## Usage
 
@@ -168,7 +147,7 @@ singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Dia
 Local installs
 
 ```bash
-vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 "--c1-bin" *must* point to the jarfile, not to the directory it's in.
@@ -176,10 +155,11 @@ vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-
 ## Input files and formats
 
 vConTACT2 tries to alleviate some of the challenges created by the complex file format of the original vConTACT and 
-provides a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in 
+provide a more seamless "pipeline" to go from raw data to a finished network. It also allows the user flexibility in 
 providing files at various points along the processing pipeline. Generally speaking, if a user provides an intermediary 
 file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial 
-recovery and re-start of any interrupted analysis.
+recovery and re-start of any interrupted analysis. That said, *if there is an issue and you're trying to troubleshoot, 
+always re-run and specify a new output directory*.
 
 ##### If starting from raw proteins
 
@@ -216,6 +196,14 @@ ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,ORF E-96
 ```
 
 (Multiple keywords must be separated using ";":)
+
+Note: These keywords have no effect on the calculations. However, vConTACT will aggregate these gene keywords and in 
+the output files you can find how many keywords were found in the same VC or PC. So, for example, if there are 5 phage 
+tail fiber proteins in the same PC, that could be indicative of something pretty interesting! Or perhaps (more 
+likely) there are novel genomes in your analysis. 4 of them have keywords associated to tail fibers, 1 of them is from 
+a novel virus - well, if they're in the same PC then there's a good chance that "unknown" ORF is a tail fiber. vConTACT 
+can't replace existing tools for understanding protein homology or similar functions, but it can help guide you through 
+looking at viruses from their VC point-of-view.
 
 ```
 protein_id,contig_id,keywords
