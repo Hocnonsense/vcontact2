@@ -67,7 +67,7 @@ inputs.add_argument('--db', type=str,
                              'ProkaryoticViralRefSeq85-ICTV',
                              'ProkaryoticViralRefSeq85-Merged',
                              'ProkaryoticViralRefSeq88-Merged',
-                             'ProkaryoticViralRefSeq94-Merged'
+                             'ProkaryoticViralRefSeq94-Merged',
                              'ArchaeaViralRefSeq85-Merged',
                              'ArchaeaViralRefSeq94-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
