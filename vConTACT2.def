@@ -18,6 +18,7 @@ MirrorURL: http://ftp.us.debian.org/debian/
     apt-get update && apt-get install -y automake build-essential bzip2 wget git default-jre unzip
     
     export BINPATH=/usr/local/bin
+    export PATH=/miniconda3/bin:$PATH
     
     # Install miniconda to save dependency nightmares
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
