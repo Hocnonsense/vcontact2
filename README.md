@@ -1,9 +1,28 @@
 vConTACT : Viral CONtig Automatic Cluster Taxonomy 2
 ====================================================
 
-vConTACT2 is a tool to perform guilt-by-contig-association automatic classification of viral contigs.
+vConTACT2 is a tool to perform guilt-by-contig-association classification of viral genomic sequence data. It's designed 
+to cluster and provide taxonomic context of metagenomic sequencing data.
 
-## Requirements
+## Publications/Citation
+
+If you find vConTACT2 useful, please cite our newly published article in Nature Biotech!
+
+Bin Jang, H., Bolduc, B., Zablocki, O., Kuhn, J. H., Roux, S., Adriaenssens, E. M., … Sullivan, M. B. (2019). Taxonomic assignment of uncultivated prokaryotic virus genomes is enabled by gene-sharing networks. Nature Biotechnology. https://doi.org/10.1038/s41587-019-0100-8
+
+The theory and original code this work was based on:
+
+Bolduc, B., Jang, H. Bin, Doulcier, G., You, Z., Roux, S., & Sullivan, M. B. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243
+
+## Documentation
+
+Please excuse our new documentation placement! The README was getting a bit on the longer side, so has been moved to 
+[our new wiki](https://bitbucket.org/MAVERICLab/vcontact2/wiki/Home). We hope that this will minimize the README length 
+and provide a much larger area for detailed descriptions of vConTACT2.
+
+Please see below for a [now] abbreviated installation and running instructions.
+
+## Installation Requirements
 
 vConTACT requires numerous python packages to function correctly, and each must be properly installed and working for 
 vConTACT to also work.
@@ -38,10 +57,10 @@ Installing vConTACT dependencies may seem daunting, but the instructions below s
 users. While Windows is not officially supported, users have been able to run vConTACT on these machines (usually 
 through some sort of virtual machine).
 
-#### Singularity
+#### Singularity (all) (trivial if already have Singularity installed)
 
-A singularity image is provided accompanying this documentation. Please use this file to create and bootstrap the 
-vConTACT container.
+A singularity definitions file is provided accompanying this documentation. Please use this file to create and 
+bootstrap the vConTACT container.
 
 ```bash
 sudo singularity build vConTACT2.simg vConTACT2.def
@@ -91,9 +110,9 @@ wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
 cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
 
-Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows 
-little/no difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house 
-analyses have been performed to recommend.*
+Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows little/no 
+difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have
+ been performed to recommend.*
 
 Finally, install vConTACT2 from source file.
 
@@ -113,15 +132,6 @@ git clone bitbucket.org/MAVERICLab/vcontact2
 cd vcontact2 && pip install .
 ```
 
-#### Pip-based installation (Mac/Linux)
-
-Pip should automatically install vConTACT2 alongside all of its dependencies, provided python3.x is correctly installed.
-
-```bash
-git clone bitbucket.org/MAVERICLab/vcontact2
-cd vcontact2 && pip install .
-```
-
 You might encounter an issue where pip install doesn't install ALL of the database files. In this case, you'll have to 
 manually copy the database files to wherever pip is installing vContact2 to.
 
@@ -132,9 +142,7 @@ cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3
 *Your installation path might be at a different location.* Usually it's some form of 
 "<where-you-installed-conda>/lib/python3.X/site-packages/vcontact/data/"
 
-## Usage
-
-#### For the impatient
+## Usage (for the impatient)
 
 Singularity
 
@@ -160,8 +168,6 @@ providing files at various points along the processing pipeline. Generally speak
 file, vConTACT2 will skip the steps it would of taken to get to that file. This is useful because it allows partial 
 recovery and re-start of any interrupted analysis. That said, *if there is an issue and you're trying to troubleshoot, 
 always re-run and specify a new output directory*.
-
-##### If starting from raw proteins
 
 The only required files are:
 
@@ -224,88 +230,7 @@ And the run command:
 vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
-##### If starting with a BLASTP or Diamond results file
-
-In addition to the gene-to-genome mapping file (above), users must provide a tab-delimited (i.e. "tabular") BLASTP 
-(-outfmt 6) or Diamond file (--outfmt 0).
-
-```
-NP_039777.1	NP_039777.1	100.0	251	0	0	1	251	1	251	2.1e-144	510.8
-NP_039777.1	YP_003331457.1	49.2	238	114	4	5	239	1	234	1.4e-55	215.7
-NP_039777.1	YP_003331489.1	49.6	234	111	4	2	232	20	249	3.2e-55	214.5
-NP_039777.1	NP_944455.1	48.7	228	111	3	8	232	3	227	9.2e-55	213.0
-NP_039777.1	YP_001552190.1	48.5	227	111	3	9	232	4	227	7.8e-54	209.9
-NP_039777.1	YP_077262.1	24.6	211	131	10	29	230	89	280	6.5e-08	57.4
-NP_039777.1	YP_007348313.1	24.2	211	132	10	29	230	89	280	7.1e-07	53.9
-NP_944455.1	NP_039777.1	48.7	228	111	3	3	227	8	232	7.2e-54	209.9
-NP_963931.1	NP_039777.1	33.8	219	133	4	17	233	16	224	5.9e-30	130.6
-NP_963972.1	NP_039777.1	44.5	236	116	5	5	230	12	242	8.8e-44	176.4
-```
-
-Note that the example above could come from either Diamond or BLASTP!
-
-```
-vcontact --blast-fp [BLASTP/Diamond file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
-```
-
-##### If starting with contig, PC and PC profile info files
-
-Existing vConTACT users will recognize these are the output files from vConTACT-PCs, the tool that parsed BLASTP output
- files and a gene-to-genome mapping file and generated these 3 files. Although vConTACT-PCs has been fully integrated 
- (with improved options), we still want to be able to support analyses performed with the original vConTACT (and if 
- users wish to compare v1 and v2).
-
-**pcs.csv**: File with information about each PC. The size of the PC, how many ORFs/genes were annotated, and counts 
-these annotations for the "keywords" column.
-
-```
-pc_id,size,annotated,keys
-PC_00000,138,138.0,"UvsW RNA-DNA and DNA-DNA helicase ATPase (3); UvsW RNA-DNA and DNA-DNA helicase (2); RNA-DNA and DNA-DNA helicase (12); hypothetical protein Aes012_171 (1); hypothetical protein Aes508_160 (1); hypothetical protein CC2_292 (1); UvsW.1 conserved hypothetical protein (9); unnamed protein product (3); hypothetical protein PHG25ORF166w (1); uvsW.1 hypothetical protein (1); hypothetical protein ST44RRORF175w (1); DNA helicase (16)"
-PC_00002,115,115.0,"gp60plus39 DNA topoisomerase subunit (8); DNA topoisomerase subunit (10); topoisomerase II large subunit (20); DNA topoisomerase II large subunit (18); unnamed protein product (2); gp39plus60 DNA topoisomerase II large subunit (2); gp60plus39 (1); putative DNA topoisomerase II (1); Putative phage DNA topoisomerase (large subunit) (2); DNA topoisomerase large subunit (6); DNA topoisomerase (1)"
-PC_00003,113,113.0,Phage_cluster_17 (3); HNH_3 (1); AP2 (2); hypothetical protein JJJB_0065 (1); putative endonuclease (3); HNH homing endonuclease (6); predicted homing endonuclease (1); putative homing endonuclease (4); putative HNH endonuclease (11); hypothetical protein ABY59_0200052 (1); endonuclease (4); HNH endonuclease (15); homing endonuclease (5); putative homing endonuclease RB16 3 (1); hypothetical protein (10); gp51 (1)
-PC_00004,111,111.0,Phage_cluster_43 (1); hypothetical protein PBI_ABROGATE_510 (1); hypothetical protein PBI_ABROGATE_520 (1); hypothetical protein AENEAS_54 (1); hypothetical protein AENEAS_55 (1); hypothetical protein PBI_ALSFRO_57 (1); hypothetical protein PBI_ALSFRO_56 (1); hypothetical protein ALVIN_53 (1); hypothetical protein ALVIN_52 (1); hypothetical protein ANUBIS_59 (1); hypothetical protein CKC_55 (1); hypothetical protein BARRIGA_53 (1)
-PC_00005,105,105.0,"NrdA aerobic NDP reductase large subunit (6); aerobic NDP reductase large subunit (15); aerobic ribonucleoside diphosphate reductase large subunit (2); NrdA ribonucleotide reductase A subunit (4); unnamed protein product (1); NrdA aerobic ribonucleoside diphosphate reductase large subunit (1); NrdA-B aerobic NDP reductase large subunit (1); NrdA-A aerobic NDP reductase large subunit (1); ribonucleotide reductase of class Ia (aerobic) alpha subunit (11)"
-PC_00006,102,102.0,DexA exonuclease A (16); exonuclease A (44); DNA exonuclease A (4); unnamed protein product (2); dexA exonuclease A (1); exonuclease (11); putative exonuclease A (2); Putative exonuclease A (1); DexA (1); dexA gene product (1); hypothetical protein Ea357_064 (1); hypothetical protein ECML134_011 (1); hypothetical protein MX01_12 (1); hypothetical protein QL01_13 (1); hypothetical protein WG01_13 (1); putative DexA exonuclease A (2)"
-PC_00007,101,101.0,"gp41 replication and recombination DNA helicase (7); DNA primase-helicase subunit (27); gp41 DNA primase-helicase subunit (8); replication and recombination DNA helicase (12); unnamed protein product (2); gp41 DNA helicase (1); 41 helicase (2); DNA primase/helicase (11); DNA helicase (7); putative DNA primase-helicase subunit (4); Putative DNA helicase (1); 41 gene product (1); hypothetical protein ECML134_039 (1)"
-PC_00008,101,101.0,"RnlB RNA ligase 2 (15); RNA ligase 2 (41); putative RnlB RNA ligase 2 (1); putative RNA ligase 2 (3); unnamed protein product (1); RnlB-B RNA ligase 2 (1); RnlB-A RNA ligase 2 (1); RNA ligase (21); rnlB gene product (1); RnlB 2nd RNA ligase (1); hypothetical protein ECML134_173 (1); hypothetical protein HY03_0045 (1); hypothetical protein HY03_0044 (1); putative RNA ligase (2); phage-associated RNA ligase (1)"
-```
-
-Note: parentheses ("") for rows that include ","
-
-**profiles.csv**: Each ORF gets assigned to a PC (unless it's a singleton, in which case it's empty) and that ORF 
-"position" inherits the PC it was assigned.
-
-```
-contig_id,pc_id
-Sulfolobus spindle-shaped virus 1,PC_06169
-Sulfolobus spindle-shaped virus 1,PC_19100
-Sulfolobus spindle-shaped virus 1,PC_07015
-Sulfolobus spindle-shaped virus 1,PC_08048
-Sulfolobus spindle-shaped virus 1,PC_06170
-Sulfolobus spindle-shaped virus 1,PC_05061
-Sulfolobus spindle-shaped virus 1,PC_05065
-Sulfolobus spindle-shaped virus 1,PC_06171
-```
-
-**contigs.csv**: How many proteins are associated with each contig/genome.
-
-```
-contig_id,proteins
-Sulfolobus spindle-shaped virus 1,31
-Sulfolobus spindle-shaped virus 2,34
-Sulfolobus spindle-shaped virus 4,34
-Sulfolobus spindle-shaped virus 5,34
-Sulfolobus spindle-shaped virus 6,33
-Sulfolobus spindle-shaped virus 7,33
-Sulfolobus turreted icosahedral virus 1,36
-Sulfolobus turreted icosahedral virus 2,34
-```
-
-```
-vcontact --contigs-fp [contig csv file] --pcs-fp [PCs csv file] --pcprofiles-fp [PC profile csv file] --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
-```
-
-Note: using this method will disallow the use of reference databases!
+**Instructions to use other input files/formats are available at the wiki!**
 
 ### Example files
 
@@ -351,17 +276,3 @@ network but those two genomes won't be in the same VC subcluster or even the sam
 aren't related, it just means they did not share a sufficiently significant proportion of their genes to be of the same 
 genus. *They could very much be related at the subfamily or family level.* However, that's for the researcher to 
 decide.
-
-## Citation
-
-If you find vConTACT2 useful, please cite our newly published article in Nature Biotech!:
-
-Bin Jang, H., Bolduc, B., Zablocki, O., Kuhn, J. H., Roux, S., Adriaenssens, E. M., … Sullivan, M. B. (2019). Taxonomic assignment of uncultivated prokaryotic virus genomes is enabled by gene-sharing networks. Nature Biotechnology. https://doi.org/10.1038/s41587-019-0100-8
-
-The theory and original code this work was based on:
-
-Bolduc, B., Jang, H. Bin, Doulcier, G., You, Z., Roux, S., & Sullivan, M. B. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243
-
-## Known Issues
-
-* The resume function is still a bit buggy. In the case of a job failure, please start *with a fresh* output directory.
