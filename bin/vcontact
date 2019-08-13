@@ -567,6 +567,8 @@ def main(args):
             pd.isnull(merged_df.order) & pd.isnull(merged_df.family) & (pd.isnull(merged_df.genus)), 'origin'] = np.nan
     else:
         merged_df = contigs_csv_df
+        merged_fp = os.path.join(output_dir, 'merged_df.csv')
+        merged_df.to_csv(merged_fp)
 
     print("\n\n" + "{:-^80}".format("Calculating Similarity Networks"))
 

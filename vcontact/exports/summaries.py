@@ -100,8 +100,6 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     edges_df = pd.read_csv(network, header=None, index_col=None, delimiter=' ', names=['source', 'target', 'weight'])
 
     # Reinforce contigs with taxonomy, and sort of overlapping clusters
-    # print('Merging nodes with reference taxonomy')
-    # node_table_df = node_table_df.merge(contigs_tax_df, how='left', left_on='Name', right_on='contig_id')
     predefined = ['order', 'family', 'subfamily', 'genus']
     levels = [column for column in contigs.columns if column in predefined]
 
@@ -122,12 +120,14 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     T = 0.5 * pcs * (pcs - 1)
     logT = np.log10(T)
 
+    # Keep track of genomes that get clustered, but get "excluded" when their dist is greater than threshold
+    clustered_singletons = {}
     for contig_cluster, contig_cluster_group in node_table.groupby(by='rev_pos_cluster'):
         logger.debug('Processing viral cluster {}'.format(contig_cluster))
 
         size = len(contig_cluster_group)
 
-        cluster_contigs = contig_cluster_group['contig_id'].unique()  # WARN network is ~
+        cluster_contigs = contig_cluster_group['contig_id'].unique().tolist()  # WARN network is ~
         selected_edges = edges_df[
             (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
 
@@ -149,18 +149,27 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         try:
             dist = distance.pdist(crosstab.values, metric='euclidean')
             row_linkage = linkage(dist, method='average')
-        except ValueError:
-            # print('VC {}'.format(contig_cluster))
-            continue  # Empty distance matrix - occurs when overlapping members leaves a cluster w/ 1 member
 
-        c, coph_dists = cophenet(row_linkage, dist)
-        logger.debug('Cophenet distance: {}'.format(c))
+            # Keep all "distance" logic here
+            c, coph_dists = cophenet(row_linkage, dist)
+            logger.debug('Cophenet distance: {}'.format(c))
 
-        average_dist = dist.mean()
-        min_dist = dist.min()  # np.min(dist[np.nonzero(dist)])  # Still want zeroes
-        max_dist = dist.max()
-        thres_counts = dist[dist < viral_clusters.dist].size  # np.where(dist < 8)
-        frac = float(thres_counts) / dist.size
+            dist_size = dist.size
+            average_dist = dist.mean()
+            min_dist = dist.min()  # np.min(dist[np.nonzero(dist)])  # Still want zeroes
+            max_dist = dist.max()
+            thres_counts = dist[dist < viral_clusters.dist].size  # np.where(dist < 8)
+            frac = float(thres_counts) / dist.size
+            clustered_singletons.update({contig: 'Clustered' for contig in cluster_contigs})
+
+        except ValueError:  # Empty distance matrix - occurs when overlapping members leaves a cluster w/ 1 member
+            dist_size = 1
+            min_dist = 0
+            max_dist = 0
+            average_dist = 0
+            thres_counts = 1  # These are newly established "singetons"
+            frac = 1
+            clustered_singletons[cluster_contigs[0]] = 'Clustered/Singleton'
 
         # Get internals
         intracluster_selected_edges = edges_df[
@@ -220,7 +229,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         try:
             summary_df.loc[len(summary_df), columns] = 'VC_{}'.format(contig_cluster), size, internal_weights, \
                                                        external_weights, quality, pval, min_dist, max_dist, \
-                                                       dist.size, thres_counts, frac, average_dist, \
+                                                       dist_size, thres_counts, frac, average_dist, \
                                                        len(taxonomies['genus']), len(taxonomies['family']), \
                                                        len(taxonomies['order']), ','.join(cluster_contigs)
         except Exception as e:
@@ -294,8 +303,9 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
             genus_conf = genus_s['Taxon Prediction Score']
 
         try:
-            node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, 'Clustered',\
-                                                                      size, subcluster, subcluster_size, quality, \
+            node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, \
+                                                                      clustered_singletons[genome], size, subcluster, \
+                                                                      subcluster_size, quality, \
                                                                       adj_pval, vc_overall_conf, \
                                                                       vc_genera, vc_families, vc_orders, genus_conf
         except Exception as e:
