@@ -1,12 +1,5 @@
-# Copyright (c) 2015-2016, Gregory M. Kurtzer. All rights reserved.
-# 
-# "Singularity" Copyright (c) 2016, The Regents of the University of California,
-# through Lawrence Berkeley National Laboratory (subject to receipt of any
-# required approvals from the U.S. Dept. of Energy).  All rights reserved.
-
-BootStrap: debootstrap
-OSVersion: stable
-MirrorURL: http://ftp.us.debian.org/debian/
+Bootstrap: library
+From: ubuntu:18.04
 
 %environment
     export PATH=/miniconda3/bin:$PATH
@@ -23,27 +16,28 @@ MirrorURL: http://ftp.us.debian.org/debian/
     # Install miniconda to save dependency nightmares
     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash Miniconda3-latest-Linux-x86_64.sh -b -f -p /miniconda3/
-    rm Miniconda3-latest-Linux-x86_64.sh
-    
-    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil
+
+    # Stop being stuck 2 years in the past and use conda 4.4 newfangled activate
+    . /miniconda3/etc/profile.d/conda.sh  # Only activates conda, but don't need to "activate base"
+    # "conda install" continues to work w/out the above because PATH variable exported earlier
+    conda install -y conda-build
+    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil setuptools-markdown
     conda install -y -c bioconda mcl blast diamond
     
-    pip install setuptools-markdown
-    
-    # Install vContact
+    # Install vContact, wahoo!
     git clone https://bitbucket.org/MAVERICLab/vcontact2.git
-    cd vcontact2 && pip install .
+    cd vcontact2 && pip install .  # pip is miniconda3's from PATH export
 
     # Bug with setuptools?
     cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
 
     # 'Install' ClusterONE
-    cd / && wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
-    mv /cluster_one-1.0.jar $BINPATH && chmod +x $BINPATH/cluster_one-1.0.jar
+    cd / && wget -O $BINPATH/cluster_one-1.0.jar http://www.paccanarolab.org/static_content/clusterone/
+    chmod +x $BINPATH/cluster_one-1.0.jar
 
-    # Clean stuff up
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-    conda clean --yes --tarballs --packages --source-cache
+    # Clean stuff up to reduce disk space
+    apt-get clean && conda build purge-all
+    rm Miniconda3-latest-Linux-x86_64.sh
 
     # TACC's Stampede compliant, for iVirus/CyVerse
     mkdir /home1 && mkdir /scratch && mkdir /work
