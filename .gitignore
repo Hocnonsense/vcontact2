@@ -78,6 +78,6 @@ manuscripts/
 vConTACT_contigs.csv
 vConTACT_pcs.csv
 vConTACT_profiles.csv
-/vConTACT_proteins.csv
+vConTACT_proteins.csv
 
 dist/
