@@ -5,7 +5,7 @@ vConTACT2 (viral Contig Automatic Cluster Taxonomy) is tool to perform
 "Guilt-by-contig-association" automatic classification of viral
 contigs.
 
-This program is ditributed under the term of the GNU General Public
+This program is distributed under the term of the GNU General Public
 Licence v3 (or later) with ABSOLUTELY NO WARRANTY. This is free
 software, and you are welcome to redistribute it.
 """
@@ -68,8 +68,10 @@ inputs.add_argument('--db', type=str,
                              'ProkaryoticViralRefSeq85-Merged',
                              'ProkaryoticViralRefSeq88-Merged',
                              'ProkaryoticViralRefSeq94-Merged',
+                             'ProkaryoticViralRefSeq97-Merged',
                              'ArchaeaViralRefSeq85-Merged',
-                             'ArchaeaViralRefSeq94-Merged'],
+                             'ArchaeaViralRefSeq94-Merged',
+                             'ArchaeaViralRefSeq97-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
                          'aware that there will be no references included in the analysis.')
@@ -301,7 +303,9 @@ def main(args):
         'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
         'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.faa.gz'),
         'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.faa.gz'),
-        'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.faa.gz')
+        'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.faa.gz'),
+        'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.faa.gz'),
+        'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.faa.gz')
     }
 
     # Check if exists
@@ -395,7 +399,9 @@ def main(args):
             'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.protein2contig.csv'),
             'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.protein2contig.csv'),
             'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.protein2contig.csv'),
-            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.protein2contig.csv')
+            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.protein2contig.csv'),
+            'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.protein2contig.csv'),
+            'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.protein2contig.csv')
         }
 
         usr_gene2genome_fp = args.proteins_fp
@@ -452,7 +458,8 @@ def main(args):
             logger.debug("File {} exists and will be used. Use -f to overwrite.".format(pcs_fn))
 
         # Load the clusters...
-        logger.info("Loading the clusters (this may take some time...)")
+        logger.info("Building the cluster and profiles (this may take some time...)\nIf it fails, try re-running "
+                    "using --blast-fp flag and specifiying merged.self-diamond.tab (or merged.self-blastp.tab)")
         protein_df, clusters_df, profiles_df, contigs_df = vcontact.protein_clusters.build_clusters(
             pcs_fp, gene2genome_df, pcs_mode)
         # protein_df = protein_id, contig_id, keywords, cluster
@@ -483,7 +490,6 @@ def main(args):
             logger.debug("File {} exists and will be used. Use -f to overwrite.".format(profiles_fn))
 
     # No longer need to re-load dfs
-    # But at this moment would need to rewrite the csv loader to accommodate dataframes directly
 
     # Loader
     print("\n\n" + "{:-^80}".format("Loading data"))
@@ -494,7 +500,6 @@ def main(args):
     # profiles = dict w/ matrix and singletons
     # Refactor later
 
-    # contigs_csv_df = pd.read_csv(contigs_fi, sep=',', low_memory=False)
     contigs_csv_df = contigs_df.copy()
     contigs_csv_df['contig_id'] = contigs_csv_df['contig_id'].str.replace(' ', '~')
     logger.debug(
@@ -506,7 +511,7 @@ def main(args):
 
     profiles = profiles_df.copy()
 
-    profiles['contig_id'] = profiles['contig_id'].str.replace(' ', '~')
+    profiles['contig_id'] = profiles['contig_id'].str.replace(' ', '~')  # ClusterONE can't handle spaces
 
     # Filtering the PC profiles that appears only once
     before_filter = len(profiles)
@@ -546,12 +551,14 @@ def main(args):
             'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
             'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.Merged-reference.csv'),
             'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.Merged-reference.csv')
+            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.Merged-reference.csv'),
+            'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.Merged-reference.csv')
         }
 
         ref = ref_tax[args.db]
-        ref_df = pd.read_csv(ref, header=0)  # , index_col=0 not with v85 and above
-        ref_df['origin'] = 'RefSeq-85'
+        ref_df = pd.read_csv(ref, header=0)
+        # ref_df['origin'] = 'RefSeq-85'
 
         ref_tax = ref_df[taxonomies]
         ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')  # Ensure c1 can process names
@@ -617,6 +624,7 @@ def main(args):
         gc = None
         logger.error("Error in contig clustering")
         logger.exception(e)
+        exit(1)
 
     try:
         vc = vcontact.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=options.optimize)
@@ -624,6 +632,7 @@ def main(args):
         vc = None
         logger.error("Error in viral clusters")
         logger.exception(e)
+        exit(1)
 
     print("\n\n" + "{:-^80}".format("Protein modules"))
 
@@ -639,6 +648,7 @@ def main(args):
         modules = None
         logger.error("Error in protein module computation")
         logger.exception(e)
+        exit(1)
 
     # by the time the linking happens, contigs are already forced into clusters that they could be sharing....
     # VCs and PC modules are independent of each other, as each takes into account the totality of the other, yet isn't
@@ -653,6 +663,7 @@ def main(args):
         link = None
         logger.error("Error in linking modules and clusters")
         logger.exception(e)
+        exit(1)
 
     print("\n\n" + "{:-^80}".format("Exporting results files"))
 
@@ -712,14 +723,15 @@ def main(args):
         excluded = vcontact.exports.summaries.find_excluded(merged_fp, os.path.join(output_dir, gc.name + '.ntw'),
                                                             gc.df)
     except Exception as e:
-        logger.error("Error in identifying excluded contigs: {}".format(e))
+        logger.error(f"Error in identifying excluded contigs (i.e. those dropped for being singletons or outliers):"
+                     f" {e}")
 
     # Final cleanup and adding back in those genomes
     try:
         vcontact.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
                                                  profiles_fp, vc, excluded)
     except Exception as e:
-        logger.error("Error in exporting the final summary data: {}".format(e))
+        logger.error(f"Error in exporting the final summary data: {e}")
 
 
 if __name__ == "__main__":

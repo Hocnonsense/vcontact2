@@ -1,0 +1,100 @@
+Organism/Name,origin,order,family,subfamily,genus
+Acidianus bottle-shaped virus,RefSeq-97,,Ampullaviridae,,Ampullavirus
+Acidianus bottle-shaped virus 2,RefSeq-97,,Ampullaviridae,,Ampullavirus
+Acidianus bottle-shaped virus 3,RefSeq-97,,Ampullaviridae,,Ampullavirus
+Acidianus filamentous virus 1,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Gammalipothrixvirus
+Acidianus filamentous virus 2,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Deltalipothrixvirus
+Acidianus filamentous virus 3,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Acidianus filamentous virus 6,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Acidianus filamentous virus 7,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Acidianus filamentous virus 8,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Acidianus filamentous virus 9,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Acidianus rod-shaped virus 1,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Acidianus rod-shaped virus 2,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Acidianus spindle-shaped virus 1,RefSeq-97,,Fuselloviridae,,Betafusellovirus
+Acidianus tailed spindle virus,RefSeq-97,,Bicaudaviridae,,
+Acidianus two-tailed virus,RefSeq-97,,Bicaudaviridae,,Bicaudavirus
+Aeropyrum coil-shaped virus,RefSeq-97,,Spiraviridae,,Alphaspiravirus
+Aeropyrum globular virus 1,RefSeq-97,,,,
+Aeropyrum pernix bacilliform virus 1,RefSeq-97,,Clavaviridae,,Clavavirus
+Aeropyrum pernix ovoid virus 1,RefSeq-97,,Guttaviridae,,Betaguttavirus
+Aeropyrum pernix spindle-shaped virus 1,RefSeq-97,,,,
+Archaeal BJ1 virus,RefSeq-97,Caudovirales,Siphoviridae,,
+Haloarcula californiae icosahedral virus 1,RefSeq-97,,Sphaerolipoviridae,,Alphasphaerolipovirus
+Haloarcula hispanica icosahedral virus 2,RefSeq-97,,Sphaerolipoviridae,,Alphasphaerolipovirus
+Haloarcula hispanica pleomorphic virus 1,RefSeq-97,,Pleolipoviridae,,Alphapleolipovirus
+Haloarcula hispanica pleomorphic virus 2,RefSeq-97,,Pleolipoviridae,,Alphapleolipovirus
+Haloarcula hispanica virus PH1,RefSeq-97,,Sphaerolipoviridae,,Alphasphaerolipovirus
+Haloarcula hispanica virus SH1,RefSeq-97,,Sphaerolipoviridae,,Alphasphaerolipovirus
+Halobacterium phage phiH,RefSeq-97,Caudovirales,Myoviridae,,Myohalovirus
+Halogeometricum pleomorphic virus 1,RefSeq-97,,Pleolipoviridae,,Betapleolipovirus
+Halorubrum phage CGphi46,RefSeq-97,,,,
+Halorubrum phage HF2,RefSeq-97,Caudovirales,Myoviridae,,
+Halorubrum pleomorphic virus 1,RefSeq-97,,Pleolipoviridae,,Alphapleolipovirus
+Halorubrum pleomorphic virus 2,RefSeq-97,,Pleolipoviridae,,Alphapleolipovirus
+Halorubrum pleomorphic virus 3,RefSeq-97,,Pleolipoviridae,,Betapleolipovirus
+Halorubrum pleomorphic virus 6,RefSeq-97,,Pleolipoviridae,,Alphapleolipovirus
+Halovirus HCTV-1,RefSeq-97,,,,
+Halovirus HCTV-2,RefSeq-97,,,,
+Halovirus HCTV-5,RefSeq-97,,,,
+Halovirus HF1,RefSeq-97,Caudovirales,Myoviridae,,
+Halovirus HGTV-1,RefSeq-97,,,,
+Halovirus HHTV-1,RefSeq-97,,,,
+Halovirus HHTV-2,RefSeq-97,,,,
+Halovirus HRTV-4,RefSeq-97,,,,
+Halovirus HRTV-5,RefSeq-97,Caudovirales,Myoviridae,,
+Halovirus HRTV-7,RefSeq-97,Caudovirales,Myoviridae,,
+Halovirus HRTV-8,RefSeq-97,Caudovirales,Myoviridae,,
+Halovirus HSTV-1,RefSeq-97,,,,
+Halovirus HSTV-2,RefSeq-97,Caudovirales,Myoviridae,,
+Halovirus HVTV-1,RefSeq-97,,,,
+Halovirus VNH-1,RefSeq-97,,,,
+His 1 virus,RefSeq-97,,,,Salterprovirus
+His2 virus,RefSeq-97,,Pleolipoviridae,,Gammapleolipovirus
+Hyperthermophilic Archaeal Virus 1,RefSeq-97,,,,
+Hyperthermophilic Archaeal Virus 2,RefSeq-97,,,,
+Metallosphaera turreted icosahedral virus,RefSeq-97,,,,
+Methanobacterium phage psiM2,RefSeq-97,Caudovirales,Siphoviridae,,
+Methanothermobacter phage psiM100,RefSeq-97,Caudovirales,Siphoviridae,,
+Natrialba phage PhiCh1,RefSeq-97,Caudovirales,Myoviridae,,Myohalovirus
+Pyrobaculum filamentous virus 1,RefSeq-97,,Tristromaviridae,,Alphatristromavirus
+Pyrobaculum spherical virus,RefSeq-97,,Globuloviridae,,Globulovirus
+Pyrococcus abyssi virus 1,RefSeq-97,,,,
+Stygiolobus rod-shaped virus,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobales Mexican fusellovirus 1,RefSeq-97,,Fuselloviridae,,
+Sulfolobales Mexican rudivirus 1,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobales Virus YNP2,RefSeq-97,,,,
+Sulfolobales virus YNP1,RefSeq-97,,,,
+Sulfolobus ellipsoid virus 1,RefSeq-97,,Ovaliviridae,,Alphaovalivirus
+Sulfolobus islandicus filamentous virus,RefSeq-97,Ligamenvirales,Lipothrixviridae,,Betalipothrixvirus
+Sulfolobus islandicus rod-shaped virus 1,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 10,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 11,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 2,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 4,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 5,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 6,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 7,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 8,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rod-shaped virus 9,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus islandicus rudivirus 3,RefSeq-97,Ligamenvirales,Rudiviridae,,Rudivirus
+Sulfolobus monocaudavirus SMV1,RefSeq-97,,Bicaudaviridae,,
+Sulfolobus monocaudavirus SMV2,RefSeq-97,,Bicaudaviridae,,
+Sulfolobus monocaudavirus SMV3,RefSeq-97,,Bicaudaviridae,,
+Sulfolobus monocaudavirus SMV4,RefSeq-97,,Bicaudaviridae,,
+Sulfolobus polyhedral virus 1,RefSeq-97,,Portogloboviridae,,Alphaportoglobovirus
+Sulfolobus spindle-shaped virus 1,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus spindle-shaped virus 2,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus spindle-shaped virus 4,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus spindle-shaped virus 5,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus spindle-shaped virus 6,RefSeq-97,,Fuselloviridae,,Betafusellovirus
+Sulfolobus spindle-shaped virus 7,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus turreted icosahedral virus 1,RefSeq-97,,Turriviridae,,Alphaturrivirus
+Sulfolobus turreted icosahedral virus 2,RefSeq-97,,Turriviridae,,Alphaturrivirus
+Sulfolobus virus Kamchatka 1,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus virus Ragged Hills,RefSeq-97,,Fuselloviridae,,Alphafusellovirus
+Sulfolobus virus STSV1,RefSeq-97,,Bicaudaviridae,,
+Sulfolobus virus STSV2,RefSeq-97,,Bicaudaviridae,,
+Thermococcus prieurii virus 1,RefSeq-97,,,,
+Thermoproteus tenax spherical virus 1,RefSeq-97,,Globuloviridae,,Globulovirus
+Thermoproteus tenax virus 1,RefSeq-97,,Tristromaviridae,,Alphatristromavirus

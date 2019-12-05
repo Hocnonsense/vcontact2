@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.9.11',
+      version='0.9.12',
       description='Viral Contig Automatic Clutering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
@@ -10,17 +10,30 @@ setup(name='vcontact2',
       license='GPLv3',
       packages=['vcontact', 'vcontact.exports', 'vcontact.utilities'],
       package_data={'vcontact': ['data/ViralRefSeq-prokaryotes-v88.faa.gz',
-                                 'data/ViralRefSeq-prokaryotes-v88.protein2contig.csv'
-                                 'data/ViralRefSeq-prokaryotes-v88.Merged-reference.csv'
+                                 'data/ViralRefSeq-prokaryotes-v88.protein2contig.csv',
+                                 'data/ViralRefSeq-prokaryotes-v88.Merged-reference.csv',
                                  'data/ViralRefSeq-prokaryotes-v85.faa.gz',
                                  'data/ViralRefSeq-prokaryotes-v85.protein2contig.csv',
                                  'data/ViralRefSeq-prokaryotes-v85.ICTV-reference.csv',
                                  'data/ViralRefSeq-prokaryotes-v85.Merged-reference.csv',
                                  'data/ViralRefSeq-archaea-v85.faa.gz',
                                  'data/ViralRefSeq-archaea-v85.protein2contig.csv',
-                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv'
+                                 'data/ViralRefSeq-archaea-v85.Merged-reference.csv',
+                                 'data/ViralRefSeq-prokaryotes-v94.faa.gz',
+                                 'data/ViralRefSeq-prokaryotes-v94.protein2contig.csv',
+                                 'data/ViralRefSeq-prokaryotes-v94.Merged-reference.csv',
+                                 'data/ViralRefSeq-archaea-v94.faa.gz',
+                                 'data/ViralRefSeq-archaea-v94.protein2contig.csv',
+                                 'data/ViralRefSeq-archaea-v94.Merged-reference.csv'
+                                 'data/ViralRefSeq-prokaryotes-v97.faa.gz',
+                                 'data/ViralRefSeq-prokaryotes-v97.protein2contig.csv',
+                                 'data/ViralRefSeq-prokaryotes-v97.Merged-reference.csv',
+                                 'data/ViralRefSeq-archaea-v97.faa.gz',
+                                 'data/ViralRefSeq-archaea-v97.protein2contig.csv',
+                                 'data/ViralRefSeq-archaea-v97.Merged-reference.csv'
+
                                  ]},
-      scripts=['bin/vcontact'],
+      scripts=['bin/vcontact', 'bin/vcontact2_gene2genome'],
       setup_requires=['setuptools-markdown'],
       install_requires=[
         'networkx>=1.11',
@@ -30,6 +43,7 @@ setup(name='vcontact2',
         'scikit-learn>=0.18.1',
         'biopython>=1.68',
         'tables>=3.3.0',
+        'pyparsing>=2.4.2'
         # 'hdf5>=1.8.17',
       ]
       )
