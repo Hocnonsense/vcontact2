@@ -234,15 +234,25 @@ vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-f
 
 ### Example files
 
-Example files are provided in the test_data/ directory. To use vConTACT2 with them, run the following command:
+Example files are provided in the test_data/ directory. These files contain either 10 genomes (VIRSorter_genomes*) or a 
+single genome (VIRSorter_genome*). To use vConTACT2 with them, run the following command:
 
 ```
-vcontact2 --raw-proteins test_data/VIRSorter_viral_prots.faa --rel-mode ‘Diamond’ --proteins-fp test_data/proteins.csv --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir VirSorted_Outputs
+vcontact2 --raw-proteins test_data/VIRSorter_genomes.faa --rel-mode ‘Diamond’ --proteins-fp test_data/VIRSorter_genomes_g2g.csv --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
 ```
 
-You should find a large assortment of input, intermediary and final output files in the "VirSorted_Outputs" directory. 
+You should find a large assortment of input, intermediate and final output files in the "vConTACT2_Results" directory. 
 *Most important* are **viral_cluster_overview.csv** and **genome_by_genome_overview.csv** file. They contain a list of 
-VC-by-VC and genome-by-genome processed, as well as any reference databases used. 
+VC-by-VC and genome-by-genome processed, as well as any reference databases used.
+
+Also included in the example files are intermediate files (vConTACT_pcs/profiles/proteins). These are generated after 
+the Diamond analysis on the input proteins, the MCL run on the resulting Diamond results, and the parsing of the MCL 
+clusters. This is the "1st stage" of vConTACT2 pre-processing. If, **at any time the job fails after this step**, you 
+can restart the run using these 3 intermediate files.
+
+```
+vcontact2 --pcs test_data/vConTACT_pcs.csv --contigs test_data/vConTACT_contigs.csv --pc-profiles test_data/vConTACT_profiles.csv --rel-mode ‘Diamond’ --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
+```
 
 ## Output files
 
