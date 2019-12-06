@@ -9,8 +9,7 @@ From: ubuntu:18.04
 
 %post
     apt-get update && apt-get install -y automake build-essential bzip2 wget git default-jre unzip
-    
-    export BINPATH=/usr/local/bin
+
     export PATH=/miniconda3/bin:$PATH
     
     # Install miniconda to save dependency nightmares
@@ -21,7 +20,7 @@ From: ubuntu:18.04
     . /miniconda3/etc/profile.d/conda.sh  # Only activates conda, but don't need to "activate base"
     # "conda install" continues to work w/out the above because PATH variable exported earlier
     conda install -y conda-build
-    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil setuptools-markdown
+    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil setuptools-markdown pyparsing
     conda install -y -c bioconda mcl blast diamond
     
     # Install vContact, wahoo!
@@ -32,8 +31,8 @@ From: ubuntu:18.04
     cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
 
     # 'Install' ClusterONE
-    cd / && wget -O $BINPATH/cluster_one-1.0.jar http://www.paccanarolab.org/static_content/clusterone/
-    chmod +x $BINPATH/cluster_one-1.0.jar
+    cd / && wget -O /miniconda3/bin/cluster_one-1.0.jar http://www.paccanarolab.org/static_content/clusterone/
+    chmod +x /miniconda3/bin/cluster_one-1.0.jar
 
     # Clean stuff up to reduce disk space
     apt-get clean && conda build purge-all

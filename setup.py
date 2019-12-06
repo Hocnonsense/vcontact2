@@ -43,7 +43,8 @@ setup(name='vcontact2',
         'scikit-learn>=0.18.1',
         'biopython>=1.68',
         'tables>=3.3.0',
-        'pyparsing>=2.4.2'
+        'pyparsing>=2.4.2',
+        'psutil>=5.5.0',
         # 'hdf5>=1.8.17',
       ]
       )
