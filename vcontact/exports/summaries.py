@@ -78,6 +78,9 @@ def find_excluded(merged, ntw, c1_df):
     merged_df = merged_df[['Genome', 'VC Status'] + taxonomies]
     merged_df = merged_df[pd.notnull(merged_df['VC Status'])]
 
+    logger.info(f'There were {len(merged_df)} sequences (including references) that were singleton, outlier or '
+                f'overlaps.')
+
     return merged_df
 
 
@@ -276,6 +279,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         # If len still >1, likely not the genome we want...
         if len(genome_df) > 1:  # Genome name is a string SUBSET of other members, but is not identical
             # Bacillus~virus~G vs Bacillus~virus~Glittering and Bacillus~virus~GA1
+            logger.warning('Still identifying genome substrings. Consider adjusting input genomes naming.')
             continue
 
         genome_s = genome_df.iloc[0]

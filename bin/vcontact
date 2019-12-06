@@ -584,6 +584,8 @@ def main(args):
     pcp = vcontact.pcprofiles.PCProfiles(merged_df, pcs_csv_df, profiles_csv, cpus, name, args.sig, args.max_sig,
                                          args.mod_sig, args.mod_shared_min)
 
+    print(pcp)
+
     # ntw = sparse matrix (contig x contig, edge weights)
     # pcs = pos, pc_id, size, annotated, keys, nb_proteins
     # contigs = pos, contig_id, proteins
@@ -725,6 +727,14 @@ def main(args):
     except Exception as e:
         logger.error(f"Error in identifying excluded contigs (i.e. those dropped for being singletons or outliers):"
                      f" {e}")
+        exit(1)
+
+    if len(excluded) == 0:
+        logger.warning(f'There were 0 genomes identified as singleton, outlier or overlaps. This is highly unusual '
+                       f'unless its a very simple dataset or only user sequences were provided. Carefully examine the '
+                       f'outputs.')
+
+    print(f'There were {len(excluded)} genomes (including refs) that were singleton, outlier or overlaps.')
 
     # Final cleanup and adding back in those genomes
     try:
@@ -732,8 +742,9 @@ def main(args):
                                                  profiles_fp, vc, excluded)
     except Exception as e:
         logger.error(f"Error in exporting the final summary data: {e}")
+        exit(1)
 
 
 if __name__ == "__main__":
-    print("\n{:=^80}\n".format("This is vConTACT {}".format(vcontact.__version__)))
+    print("\n{:=^80}\n".format("This is vConTACT2 {}".format(vcontact.__version__)))
     main(options)
