@@ -1,18 +1,15 @@
 vConTACT : Viral CONtig Automatic Cluster Taxonomy 2
 ====================================================
 
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/version.svg)](https://anaconda.org/bioconda/vcontact2)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/latest_release_date.svg)](https://anaconda.org/bioconda/vcontact2)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/platforms.svg)](https://anaconda.org/bioconda/vcontact2)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/license.svg)](https://anaconda.org/bioconda/vcontact2)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/downloads.svg)](https://anaconda.org/bioconda/vcontact2)
+[![DOI:10.1038/s41587-019-0100-8](https://zenodo.org/badge/DOI/10.1038/s41587-019-0100-8.svg)](https://doi.org/10.1038/s41587-019-0100-8)
+
 vConTACT2 is a tool to perform guilt-by-contig-association classification of viral genomic sequence data. It's designed 
 to cluster and provide taxonomic context of metagenomic sequencing data.
-
-## Publications/Citation
-
-If you find vConTACT2 useful, please cite our newly published article in Nature Biotech!
-
-Bin Jang, H., Bolduc, B., Zablocki, O., Kuhn, J. H., Roux, S., Adriaenssens, E. M., … Sullivan, M. B. (2019). Taxonomic assignment of uncultivated prokaryotic virus genomes is enabled by gene-sharing networks. Nature Biotechnology. https://doi.org/10.1038/s41587-019-0100-8
-
-The theory and original code this work was based on:
-
-Bolduc, B., Jang, H. Bin, Doulcier, G., You, Z., Roux, S., & Sullivan, M. B. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243
 
 ## Documentation
 
@@ -20,14 +17,14 @@ Please excuse our new documentation placement! The README was getting a bit on t
 [our new wiki](https://bitbucket.org/MAVERICLab/vcontact2/wiki/Home). We hope that this will minimize the README length 
 and provide a much larger area for detailed descriptions of vConTACT2.
 
-Please see below for a [now] abbreviated installation and running instructions.
+Please see below for an abbreviated installation and running instructions.
 
 ## Installation Requirements
 
 vConTACT requires numerous python packages to function correctly, and each must be properly installed and working for 
 vConTACT to also work.
 
- * python ~3.6 (not python 2.7 safe)
+ * python >=3.7 (not python 2.7 safe!)
  * networkx>=1.11
  * numpy>=1.12.1
  * scipy>=0.19.0
@@ -36,7 +33,8 @@ vConTACT to also work.
  * biopython>=1.68
  * hdf5>=1.8.17
  * pytables>=3.3.0
- * psutils
+ * psutils>=5.5.0
+ * pyparsing>=2.4.2
 
 vConTACT also requires several executables, depending on use.
 
@@ -60,10 +58,10 @@ through some sort of virtual machine).
 #### Singularity (all) (trivial if already have Singularity installed)
 
 A singularity definitions file is provided accompanying this documentation. Please use this file to create and 
-bootstrap the vConTACT container.
+bootstrap the vConTACT2 container.
 
 ```bash
-sudo singularity build vConTACT2.simg vConTACT2.def
+sudo singularity build vConTACT2.sf vConTACT2.def
 ```
 
 The build process can take a significant amount of time depending on available hardware and network speed. Builds can 
@@ -73,10 +71,10 @@ probably good to go.
 Once built, the container can be run via:
 
 ```bash
-singularity run vConTACT2.img <args>
+singularity run vConTACT2.sif <args>
 ```
 
-#### Conda-based installation (Mac/Linux) (recommended)
+#### Conda-based installation (Mac/Linux) (recommended) UPDATED!!!
 
 We highly recommend using a python environment when installing this software, as dependency versions can (and often do)
  conflict with each other.
@@ -88,24 +86,18 @@ First, grab our favorite manager, Anaconda/Miniconda and install. If it offers t
 the user's $PATH, then do so. Otherwise, follow the instructions (at the end of the install) to ensure the install is 
 activated.
 
+UPDATE DEC 2019: We now have vConTACT2 available in bioconda! Wahoo! It gets us 99% through the installation.
+
+
 ```bash
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
 # Install into $HOME/conda
 conda create --name vContact2 python=3
 source activate vContact2
-```
-
-Install python dependencies.
-
-```bash
-conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil
+conda install -y -c bioconda vcontact2
 conda install -y -c bioconda mcl blast diamond
-```
-
-Install ClusterONE
-
-```bash
+# Install ClusterONE
 wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
 cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
@@ -113,6 +105,14 @@ cp cluster_one-1.0.jar $HOME/conda/bin/
 Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows little/no 
 difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have
  been performed to recommend.*
+ 
+The bioconda installation will always lag a few versions behind the most current release. If you really want the most 
+recent, then you'll need to install the dependencies and then manually install from the source.
+
+```bash
+conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil pyparsing
+conda install -y -c bioconda mcl blast diamond
+```
 
 Finally, install vConTACT2 from source file.
 
@@ -147,7 +147,7 @@ cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3
 Singularity
 
 ```bash
-singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+singularity run vConTACT2.sif --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 "--c1-bin" *must* point to the jarfile. For the singularity image, it's been set up to be located in /usr/local/bin/
@@ -155,7 +155,7 @@ singularity run vConTACT2.img --raw-proteins [proteins file] --rel-mode ‘Dia
 Local installs
 
 ```bash
-vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 "--c1-bin" *must* point to the jarfile, not to the directory it's in.
@@ -227,7 +227,7 @@ ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovi
 And the run command:
 
 ```
-vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq85-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 **Instructions to use other input files/formats are available at the wiki!**
@@ -238,7 +238,7 @@ Example files are provided in the test_data/ directory. These files contain eith
 single genome (VIRSorter_genome*). To use vConTACT2 with them, run the following command:
 
 ```
-vcontact2 --raw-proteins test_data/VIRSorter_genomes.faa --rel-mode ‘Diamond’ --proteins-fp test_data/VIRSorter_genomes_g2g.csv --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
+vcontact2 --raw-proteins test_data/VIRSorter_genomes.faa --rel-mode ‘Diamond’ --proteins-fp test_data/VIRSorter_genomes_g2g.csv --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
 ```
 
 You should find a large assortment of input, intermediate and final output files in the "vConTACT2_Results" directory. 
@@ -251,7 +251,7 @@ clusters. This is the "1st stage" of vConTACT2 pre-processing. If, **at any time
 can restart the run using these 3 intermediate files.
 
 ```
-vcontact2 --pcs test_data/vConTACT_pcs.csv --contigs test_data/vConTACT_contigs.csv --pc-profiles test_data/vConTACT_profiles.csv --rel-mode ‘Diamond’ --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
+vcontact2 --pcs test_data/vConTACT_pcs.csv --contigs test_data/vConTACT_contigs.csv --pc-profiles test_data/vConTACT_profiles.csv --rel-mode ‘Diamond’ --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
 ```
 
 ## Output files
@@ -286,3 +286,14 @@ network but those two genomes won't be in the same VC subcluster or even the sam
 aren't related, it just means they did not share a sufficiently significant proportion of their genes to be of the same 
 genus. *They could very much be related at the subfamily or family level.* However, that's for the researcher to 
 decide.
+
+## Publications/Citation
+
+If you find vConTACT2 useful, please cite our newly published article in Nature Biotech!
+
+Bin Jang, H., Bolduc, B., Zablocki, O., Kuhn, J. H., Roux, S., Adriaenssens, E. M., … Sullivan, M. B. (2019). Taxonomic assignment of uncultivated prokaryotic virus genomes is enabled by gene-sharing networks. Nature Biotechnology. https://doi.org/10.1038/s41587-019-0100-8
+
+The theory and original code this work was based on:
+
+Bolduc, B., Jang, H. Bin, Doulcier, G., You, Z., Roux, S., & Sullivan, M. B. (2017). vConTACT: an iVirus tool to classify double-stranded DNA viruses that infect Archaea and Bacteria. PeerJ, 5, e3243. https://doi.org/10.7717/peerj.3243
+
