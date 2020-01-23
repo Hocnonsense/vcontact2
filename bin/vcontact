@@ -493,7 +493,7 @@ def main(args):
 
     # Loader
     print("\n\n" + "{:-^80}".format("Loading data"))
-    name = 'vConTACT'
+    name = 'vConTACT2'
 
     # pcs_df = pos, id, pc_id, nb_proteins
     # contigs_df = pos, id (contig), proteins
@@ -558,7 +558,6 @@ def main(args):
 
         ref = ref_tax[args.db]
         ref_df = pd.read_csv(ref, header=0)
-        # ref_df['origin'] = 'RefSeq-85'
 
         ref_tax = ref_df[taxonomies]
         ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')  # Ensure c1 can process names
@@ -583,8 +582,6 @@ def main(args):
     # .contigs, .pcs, .matrix, .singletons, .ntw, .ntw_modules
     pcp = vcontact.pcprofiles.PCProfiles(merged_df, pcs_csv_df, profiles_csv, cpus, name, args.sig, args.max_sig,
                                          args.mod_sig, args.mod_shared_min)
-
-    print(pcp)
 
     # ntw = sparse matrix (contig x contig, edge weights)
     # pcs = pos, pc_id, size, annotated, keys, nb_proteins
@@ -618,9 +615,9 @@ def main(args):
         # pos.clusters = id, pos, size
         # gc.cluster_results = list of list cluster members
 
-        if len(gc.levels):  # Add predicted_{}
-            quality = gc.total_affiliation()
-            logger.info(quality)
+        # if len(gc.levels):  # Add predicted_{}
+        #     quality = gc.total_affiliation()
+        #     logger.info(quality)
 
     except Exception as e:
         gc = None

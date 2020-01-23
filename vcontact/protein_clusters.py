@@ -71,10 +71,14 @@ def run_blastp(aa_fp, db_fp, evalue: float, cpu: int, blastp_out_fp):
 def make_diamond_db(aa_fp, db_dir, cpu: int):
 
     diamond_db_bp = os.path.join(db_dir, os.path.basename(aa_fp).rsplit('.', 1)[0])
-    make_diamond_cmd = 'diamond makedb --threads {} --in {} -d {}'.format(cpu, aa_fp, diamond_db_bp)
+    make_diamond_cmd = ['diamond', 'makedb', '--threads', str(cpu), '--in', aa_fp, '-d', diamond_db_bp]
 
-    logger.debug("Creating Diamond database...")
-    subprocess.check_call(make_diamond_cmd, shell=True)
+    logger.info("Creating Diamond database...")
+    res = subprocess.run(make_diamond_cmd, check=True, stdout=subprocess.PIPE)
+
+    if res.returncode != 0:
+        logger.error('Error creating Diamond database')
+        exit(1)
 
     diamond_db_fp = diamond_db_bp + '.dmnd'
 
@@ -84,11 +88,15 @@ def make_diamond_db(aa_fp, db_dir, cpu: int):
 def run_diamond(aa_fp, db_fp, cpu: int, diamond_out_fn):
 
     # More sensitive as an option?
-    diamond_cmd = 'diamond blastp --threads {} --sensitive -d {} -q {} -o {}'.format(
-        cpu, db_fp, aa_fp, diamond_out_fn)
+    diamond_cmd = ['diamond', 'blastp', '--threads', str(cpu), '--sensitive', '-d', db_fp, '-q', aa_fp,
+                   '-o', diamond_out_fn]
 
-    logger.debug("Running Diamond...")
-    subprocess.check_call(diamond_cmd, shell=True)
+    logger.info("Running Diamond...")
+    res = subprocess.run(diamond_cmd, check=True, stdout=subprocess.PIPE)
+
+    if res.returncode != 0:
+        logger.error('Error running Diamond')
+        exit(1)
 
     return diamond_out_fn
 
