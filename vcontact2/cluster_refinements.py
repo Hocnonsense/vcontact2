@@ -8,7 +8,7 @@ import pandas as pd
 from scipy.spatial import distance
 import scipy.cluster as sclust
 from scipy.cluster.hierarchy import linkage, cophenet
-import vcontact.evaluations
+import vcontact2.evaluations
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class ViralClusters(object):
 
             # Performance metrics
             if 'genus' in self.levels:  # If there's actual taxonomy to optimize
-                evaluations = vcontact.evaluations.Evaluations(adj_contigs, levels=['genus'],  focus='rev_pos_cluster')
+                evaluations = vcontact2.evaluations.Evaluations(adj_contigs, levels=['genus'], focus='rev_pos_cluster')
                 ppv = evaluations.tax_metrics['genus']['PPV']
                 sensitivity = evaluations.tax_metrics['genus']['Sensitivity']
                 accuracy = evaluations.tax_metrics['genus']['Accuracy']
@@ -140,7 +140,7 @@ class ViralClusters(object):
 
         self.contigs = self.results[self.dist]
 
-        self.performance = pd.DataFrame.from_dict(vcontact.evaluations.Evaluations(
+        self.performance = pd.DataFrame.from_dict(vcontact2.evaluations.Evaluations(
             self.contigs, focus='rev_pos_cluster').tax_metrics, orient='index')
 
         logger.info(self.performance)

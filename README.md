@@ -9,7 +9,7 @@ vConTACT : Viral CONtig Automatic Cluster Taxonomy 2
 [![DOI:10.1038/s41587-019-0100-8](https://zenodo.org/badge/DOI/10.1038/s41587-019-0100-8.svg)](https://doi.org/10.1038/s41587-019-0100-8)
 
 vConTACT2 is a tool to perform guilt-by-contig-association classification of viral genomic sequence data. It's designed 
-to cluster and provide taxonomic context of metagenomic sequencing data.
+to cluster and provide taxonomic context of viral metagenomic sequencing data.
 
 ## Documentation
 
@@ -28,7 +28,7 @@ vConTACT to also work.
  * networkx>=1.11
  * numpy>=1.12.1
  * scipy>=0.19.0
- * pandas>=0.19.2
+ * pandas>=0.19.2,<=0.25.3 (Pandas 1.* is NOT backwards compatible!)
  * scikit-learn>=0.18.1
  * biopython>=1.68
  * hdf5>=1.8.17
@@ -57,11 +57,11 @@ through some sort of virtual machine).
 
 #### Singularity (all) (trivial if already have Singularity installed)
 
-A singularity definitions file is provided accompanying this documentation. Please use this file to create and 
-bootstrap the vConTACT2 container.
+A singularity definitions file is provided accompanying this repository (vConTACT2.def). Please use this file to create 
+and bootstrap the vConTACT2 container.
 
 ```bash
-sudo singularity build vConTACT2.sf vConTACT2.def
+sudo singularity build vConTACT2.sif vConTACT2.def
 ```
 
 The build process can take a significant amount of time depending on available hardware and network speed. Builds can 
@@ -86,7 +86,7 @@ First, grab our favorite manager, Anaconda/Miniconda and install. If it offers t
 the user's $PATH, then do so. Otherwise, follow the instructions (at the end of the install) to ensure the install is 
 activated.
 
-UPDATE DEC 2019: We now have vConTACT2 available in bioconda! Wahoo! It gets us 99% through the installation.
+UPDATE DEC 2019: We now have vConTACT2 available in Bioconda! Wahoo! It gets us 99% through the installation.
 
 
 ```bash
@@ -95,8 +95,7 @@ bash Miniconda3-latest-Linux-x86_64.sh
 # Install into $HOME/conda
 conda create --name vContact2 python=3
 source activate vContact2
-conda install -y -c bioconda vcontact2
-conda install -y -c bioconda mcl blast diamond
+conda install -y -c bioconda vcontact2 mcl blast diamond pandas=0.25.3
 # Install ClusterONE
 wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
 cp cluster_one-1.0.jar $HOME/conda/bin/
@@ -106,11 +105,13 @@ Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It
 difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have
  been performed to recommend.*
  
+ ##### Bleeding edge
+ 
 The bioconda installation will always lag a few versions behind the most current release. If you really want the most 
 recent, then you'll need to install the dependencies and then manually install from the source.
 
 ```bash
-conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas scipy scikit-learn psutil pyparsing
+conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas=0.25.3 scipy scikit-learn psutil pyparsing
 conda install -y -c bioconda mcl blast diamond
 ```
 
@@ -125,15 +126,16 @@ cd MAVERICLab-vcontact2-XXXXXXX && pip install .
 (Some users have mentioned that their version of pip installs to a non-conda location. In this case, run "pip install 
 --prefix=$HOME/conda/bin)
 
-Alternatively, install from bitbucket.
+**Alternatively, install from bitbucket.**
 
 ```bash
 git clone bitbucket.org/MAVERICLab/vcontact2
 cd vcontact2 && pip install .
 ```
 
-You might encounter an issue where pip install doesn't install ALL of the database files. In this case, you'll have to 
-manually copy the database files to wherever pip is installing vContact2 to.
+You might encounter an issue where pip install doesn't install ALL of the database files. This should have been fixed 
+several versions ago, but just in case, you'll have to manually copy the database files to wherever pip is installing 
+vContact2 to.
 
 ```bash
 cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3.7/site-packages/vcontact/data/
@@ -147,7 +149,7 @@ cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3
 Singularity
 
 ```bash
-singularity run vConTACT2.sif --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+singularity run vConTACT2.sif --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 "--c1-bin" *must* point to the jarfile. For the singularity image, it's been set up to be located in /usr/local/bin/
@@ -155,10 +157,8 @@ singularity run vConTACT2.sif --raw-proteins [proteins file] --rel-mode ‘Dia
 Local installs
 
 ```bash
-vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
-
-"--c1-bin" *must* point to the jarfile, not to the directory it's in.
 
 ## Input files and formats
 
@@ -227,7 +227,7 @@ ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovi
 And the run command:
 
 ```
-vcontact --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
 ```
 
 **Instructions to use other input files/formats are available at the wiki!**

@@ -19,18 +19,18 @@ import psutil
 import pandas as pd
 import numpy as np
 import pkg_resources
-import vcontact
-import vcontact.protein_clusters
-import vcontact.pcprofiles
-import vcontact.contig_clusters
-import vcontact.evaluations
-import vcontact.cluster_refinements
-import vcontact.modules
-import vcontact.exports.csv
-import vcontact.exports.krona
-import vcontact.exports.cytoscape
-import vcontact.exports.profiles
-import vcontact.exports.summaries
+import vcontact2
+import vcontact2.protein_clusters
+import vcontact2.pcprofiles
+import vcontact2.contig_clusters
+import vcontact2.evaluations
+import vcontact2.cluster_refinements
+import vcontact2.modules
+import vcontact2.exports.csv
+import vcontact2.exports.krona
+import vcontact2.exports.cytoscape
+import vcontact2.exports.profiles
+import vcontact2.exports.summaries
 
 
 # Argparse multiple inheritance
@@ -295,7 +295,7 @@ def main(args):
     print("\n\n" + "{:-^80}".format("Reference databases"))
 
     # Merge potential reference databases to source
-    db_root = pkg_resources.resource_filename('vcontact', 'data/')
+    db_root = pkg_resources.resource_filename('vcontact2', 'data/')
 
     ref_dbs = {
         'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.faa.gz'),
@@ -334,7 +334,7 @@ def main(args):
 
             if not os.path.exists(merged_aa_fp):
                 logger.info("Merging {} to user sequences...".format(args.db))
-                proteins_aa_fp = vcontact.protein_clusters.merge_aa(args.raw_proteins, ref_dbs[args.db], merged_aa_fp)
+                proteins_aa_fp = vcontact2.protein_clusters.merge_aa(args.raw_proteins, ref_dbs[args.db], merged_aa_fp)
             else:
                 logger.info("Identified existing 'merged.faa' in output path: re-using...".format(args.db))
                 proteins_aa_fp = merged_aa_fp
@@ -352,9 +352,9 @@ def main(args):
 
                 if not os.path.exists(blastp_out_fn):
                     logger.info("Creating BLAST database and running BLASTP...")
-                    db_fp = vcontact.protein_clusters.make_blast_db(proteins_aa_fp)
-                    similarity_fp = vcontact.protein_clusters.run_blastp(proteins_aa_fp, db_fp, args.evalue, cpus,
-                                                                         blastp_out_fp)
+                    db_fp = vcontact2.protein_clusters.make_blast_db(proteins_aa_fp)
+                    similarity_fp = vcontact2.protein_clusters.run_blastp(proteins_aa_fp, db_fp, args.evalue, cpus,
+                                                                          blastp_out_fp)
                 else:
                     logger.info("Re-using existing BLASTP file...")
                     similarity_fp = blastp_out_fp
@@ -367,8 +367,8 @@ def main(args):
                 if not os.path.exists(diamond_out_fp):
 
                     logger.info("Creating Diamond database and running Diamond...")
-                    db_fp = vcontact.protein_clusters.make_diamond_db(proteins_aa_fp, output_dir, cpus)
-                    similarity_fp = vcontact.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, diamond_out_fp)
+                    db_fp = vcontact2.protein_clusters.make_diamond_db(proteins_aa_fp, output_dir, cpus)
+                    similarity_fp = vcontact2.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, diamond_out_fp)
                 else:
                     logger.info("Re-using existing Diamond file...")
                     similarity_fp = diamond_out_fp
@@ -448,11 +448,11 @@ def main(args):
         # Run clustering tool on the blast results...
 
         if (pcs_mode == 'MCL') and (not os.path.exists(pcs_fn) or args.force_overwrite):
-            pcs_fp = vcontact.protein_clusters.make_protein_clusters_mcl(similarity_fp, output_dir, args.pc_inflation)
+            pcs_fp = vcontact2.protein_clusters.make_protein_clusters_mcl(similarity_fp, output_dir, args.pc_inflation)
         elif (pcs_mode == 'ClusterONE') and (not os.path.exists(pcs_fn) or args.force_overwrite):
-            pcs_fp = vcontact.protein_clusters.make_protein_clusters_one(similarity_fp, cluster_one_fp, output_dir,
-                                                                         args.pc_overlap, args.pc_penalty,
-                                                                         args.pc_haircut)
+            pcs_fp = vcontact2.protein_clusters.make_protein_clusters_one(similarity_fp, cluster_one_fp, output_dir,
+                                                                          args.pc_overlap, args.pc_penalty,
+                                                                          args.pc_haircut)
         else:
             pcs_fp = False
             logger.debug("File {} exists and will be used. Use -f to overwrite.".format(pcs_fn))
@@ -460,7 +460,7 @@ def main(args):
         # Load the clusters...
         logger.info("Building the cluster and profiles (this may take some time...)\nIf it fails, try re-running "
                     "using --blast-fp flag and specifiying merged.self-diamond.tab (or merged.self-blastp.tab)")
-        protein_df, clusters_df, profiles_df, contigs_df = vcontact.protein_clusters.build_clusters(
+        protein_df, clusters_df, profiles_df, contigs_df = vcontact2.protein_clusters.build_clusters(
             pcs_fp, gene2genome_df, pcs_mode)
         # protein_df = protein_id, contig_id, keywords, cluster
         # profiles_df = contig_id, pc_id
@@ -536,7 +536,7 @@ def main(args):
     pcs_csv_df.index.name = "pos"
     pcs_csv_df = pcs_csv_df.reset_index()
 
-    matrix, singletons = vcontact.pcprofiles.build_pc_matrices(profiles, contigs_csv_df, pcs_csv_df)
+    matrix, singletons = vcontact2.pcprofiles.build_pc_matrices(profiles, contigs_csv_df, pcs_csv_df)
 
     # save
     profiles_csv = {"matrix": matrix, "singletons": singletons}
@@ -580,8 +580,8 @@ def main(args):
 
     # Protein Cluster Profile
     # .contigs, .pcs, .matrix, .singletons, .ntw, .ntw_modules
-    pcp = vcontact.pcprofiles.PCProfiles(merged_df, pcs_csv_df, profiles_csv, cpus, name, args.sig, args.max_sig,
-                                         args.mod_sig, args.mod_shared_min)
+    pcp = vcontact2.pcprofiles.PCProfiles(merged_df, pcs_csv_df, profiles_csv, cpus, name, args.sig, args.max_sig,
+                                          args.mod_sig, args.mod_shared_min)
 
     # ntw = sparse matrix (contig x contig, edge weights)
     # pcs = pos, pc_id, size, annotated, keys, nb_proteins
@@ -604,10 +604,10 @@ def main(args):
             '--seed-method': args.vc_seed
         }
 
-        gc = vcontact.contig_clusters.ContigCluster(pcp, output_dir, cluster_one_fp, cluster_one_args,
-                                                    inflation=args.vc_inflation,
-                                                    threshold=args.sig, membership_simple=not args.permissive,
-                                                    mode=args.vc_mode)
+        gc = vcontact2.contig_clusters.ContigCluster(pcp, output_dir, cluster_one_fp, cluster_one_args,
+                                                     inflation=args.vc_inflation,
+                                                     threshold=args.sig, membership_simple=not args.permissive,
+                                                     mode=args.vc_mode)
 
         # gc.pcs = pos, pc_id, size, annotated, keys, nb_proteins
         # gc.contigs = contig_id, index, pos, proteins, origin (if ref), order (ref), family (ref), genus (ref),
@@ -626,7 +626,7 @@ def main(args):
         exit(1)
 
     try:
-        vc = vcontact.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=options.optimize)
+        vc = vcontact2.cluster_refinements.ViralClusters(gc.contigs, profiles_fp, optimize=options.optimize)
     except Exception as e:
         vc = None
         logger.error("Error in viral clusters")
@@ -636,8 +636,8 @@ def main(args):
     print("\n\n" + "{:-^80}".format("Protein modules"))
 
     try:
-        modules = vcontact.modules.Modules(pcp, output_dir, threshold=args.mod_sig, inflation=args.mod_inflation,
-                                           shared_min=args.mod_shared_min)
+        modules = vcontact2.modules.Modules(pcp, output_dir, threshold=args.mod_sig, inflation=args.mod_inflation,
+                                            shared_min=args.mod_shared_min)
 
         # modules has saved module df, both pcs and and modules (2 files)
         # modules.matrix matrix
@@ -669,14 +669,14 @@ def main(args):
     # OUTPUT
     if "csv" in args.exports:
         try:
-            vcontact.exports.csv.complete(output_dir, pcp, gc, modules, link)
+            vcontact2.exports.csv.complete(output_dir, pcp, gc, modules, link)
         except Exception as e:
             logger.error("Error in CSV export")
             logger.exception(e)
 
     if "profiles" in args.exports:
         try:
-            vcontact.exports.profiles.push()
+            vcontact2.exports.profiles.push()
         except Exception as e:
             logger.error("Error in profiles export")
             logger.exception(e)
@@ -685,18 +685,18 @@ def main(args):
         cytoscape_file = output_dir + "cytoscape_export"
 
         try:
-            vcontact.exports.cytoscape.contigs(gc.network, gc.contigs, args.cluster_filter, cytoscape_file + "_contigs")
+            vcontact2.exports.cytoscape.contigs(gc.network, gc.contigs, args.cluster_filter, cytoscape_file + "_contigs")
         except Exception as e:
             logger.error("Error in Cytoscape export of contigs")
             logger.exception(e)
 
         try:
-            vcontact.exports.cytoscape.clusters(gc.network, gc.contigs, gc.clusters, args.criterion,
-                                                cytoscape_file + "_clusters")
+            vcontact2.exports.cytoscape.clusters(gc.network, gc.contigs, gc.clusters, args.criterion,
+                                                 cytoscape_file + "_clusters")
 
-            vcontact.exports.cytoscape.membership(cytoscape_file + "_membership", gc.matrix["B"], gc.contigs,
-                                                  gc.clusters,
-                                                  args.cluster_filter, args.criterion)
+            vcontact2.exports.cytoscape.membership(cytoscape_file + "_membership", gc.matrix["B"], gc.contigs,
+                                                   gc.clusters,
+                                                   args.cluster_filter, args.criterion)
         except Exception as e:
             logger.error("Error in Cytoscape export of clusters")
             logger.exception(e)
@@ -704,7 +704,7 @@ def main(args):
     if "krona" in args.exports:
         krona_file = output_dir + "krona_export.txt"
         try:
-            vcontact.exports.krona.textfile(gc.contigs, krona_file)
+            vcontact2.exports.krona.textfile(gc.contigs, krona_file)
         except Exception as e:
             logger.error("Error in Krona export")
             logger.exception(e)
@@ -719,8 +719,8 @@ def main(args):
 
     # Collect all the genomes that failed to make it to this point in the analysis
     try:
-        excluded = vcontact.exports.summaries.find_excluded(merged_fp, os.path.join(output_dir, gc.name + '.ntw'),
-                                                            gc.df)
+        excluded = vcontact2.exports.summaries.find_excluded(merged_fp, os.path.join(output_dir, gc.name + '.ntw'),
+                                                             gc.df)
     except Exception as e:
         logger.error(f"Error in identifying excluded contigs (i.e. those dropped for being singletons or outliers):"
                      f" {e}")
@@ -735,13 +735,13 @@ def main(args):
 
     # Final cleanup and adding back in those genomes
     try:
-        vcontact.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
-                                                 profiles_fp, vc, excluded)
+        vcontact2.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
+                                                  profiles_fp, vc, excluded)
     except Exception as e:
         logger.error(f"Error in exporting the final summary data: {e}")
         exit(1)
 
 
 if __name__ == "__main__":
-    print("\n{:=^80}\n".format("This is vConTACT2 {}".format(vcontact.__version__)))
+    print("\n{:=^80}\n".format("This is vConTACT2 {}".format(vcontact2.__version__)))
     main(options)

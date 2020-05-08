@@ -9,8 +9,8 @@ def complete(folder, pcm=None, gc=None, mod=None, link=None):
    
     Args:
         pcm (vcontact.pcprofiles.PCProfiles): Profiles
-        gc (vcontact.genome_clusters.GenomeClusters): Contigs
-        mod (vcontact.modules.Modules object): Modules 
+        gc (vcontact2.genome_clusters.GenomeClusters): Contigs
+        mod (vcontact2.modules.Modules object): Modules
         link (pandas.DataFrame): Link between contig clusters and modules
     """
 
