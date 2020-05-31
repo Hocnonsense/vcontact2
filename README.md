@@ -8,6 +8,11 @@ vConTACT : Viral CONtig Automatic Cluster Taxonomy 2
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/vcontact2/badges/downloads.svg)](https://anaconda.org/bioconda/vcontact2)
 [![DOI:10.1038/s41587-019-0100-8](https://zenodo.org/badge/DOI/10.1038/s41587-019-0100-8.svg)](https://doi.org/10.1038/s41587-019-0100-8)
 
+**Notice: vConTACT2 is no longer being actively developed due to end of funding (research grants often don't consider the 
+perpetual nature of software support :( ), though we are still working on bug fixes 
+and addressing other issues as they arise. We are working on a significant upgrade (hopefully some limited release 
+soon) that already resolves longstanding issues with the current v2.**
+
 vConTACT2 is a tool to perform guilt-by-contig-association classification of viral genomic sequence data. It's designed 
 to cluster and provide taxonomic context of viral metagenomic sequencing data.
 
