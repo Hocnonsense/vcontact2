@@ -31,7 +31,7 @@ From: ubuntu:18.04
     cp /vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.7/site-packages/vcontact/data/
 
     # 'Install' ClusterONE
-    cd / && wget -O /miniconda3/bin/cluster_one-1.0.jar http://www.paccanarolab.org/static_content/clusterone/
+    cd / && wget -O /miniconda3/bin/cluster_one-1.0.jar https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
     chmod +x /miniconda3/bin/cluster_one-1.0.jar
 
     # Clean stuff up to reduce disk space
