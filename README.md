@@ -100,9 +100,9 @@ bash Miniconda3-latest-Linux-x86_64.sh
 # Install into $HOME/conda
 conda create --name vContact2 python=3
 source activate vContact2
-conda install -y -c bioconda vcontact2 mcl blast diamond pandas=0.25.3
+conda install -y -c bioconda vcontact2 mcl blast diamond
 # Install ClusterONE
-wget http://www.paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
+wget https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
 cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
 

@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.9.16',
+      version='0.9.17',
       description='Viral Contig Automatic Clutering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',

@@ -266,7 +266,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
             continue
 
         # Get VC information
-        genome_df = summary_df.loc[summary_df['Members'].str.contains(genome)]  # May produce byproduct (>1, below)
+        # May produce byproduct (>1, below)
+        genome_df = summary_df.loc[summary_df['Members'].str.contains(genome, regex=False)]
 
         if len(genome_df) == 0:  # When VC is 'nan'
             continue
@@ -279,7 +280,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         # If len still >1, likely not the genome we want...
         if len(genome_df) > 1:  # Genome name is a string SUBSET of other members, but is not identical
             # Bacillus~virus~G vs Bacillus~virus~Glittering and Bacillus~virus~GA1
-            logger.warning('Still identifying genome substrings. Consider adjusting input genomes naming.')
+            logger.warning(f'Still identifying genome substrings for {genome}. Consider adjusting input '
+                           f'genomes naming so genome names arent potential substrings of each other.')
             continue
 
         genome_s = genome_df.iloc[0]
