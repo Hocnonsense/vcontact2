@@ -27,6 +27,8 @@ From: ubuntu:18.04
     git clone https://bitbucket.org/MAVERICLab/vcontact2.git
     cd vcontact2 && pip install .  # pip is miniconda3's from PATH export
 
+    cp /vcontact2/vcontact2/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.7/site-packages/vcontact2/data/
+
     # 'Install' ClusterONE
     cd / && wget -O /miniconda3/bin/cluster_one-1.0.jar https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
     chmod +x /miniconda3/bin/cluster_one-1.0.jar
