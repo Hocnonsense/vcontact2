@@ -30,16 +30,15 @@ vConTACT requires numerous python packages to function correctly, and each must 
 vConTACT to also work.
 
  * python >=3.7 (not python 2.7 safe!)
- * networkx>=1.11
- * numpy>=1.12.1
- * scipy>=0.19.0
- * pandas>=0.19.2,<=0.25.3 (Pandas 1.* is NOT backwards compatible!)
- * scikit-learn>=0.18.1
- * biopython>=1.68
- * hdf5>=1.8.17
- * pytables>=3.3.0
- * psutils>=5.5.0
- * pyparsing>=2.4.2
+ * networkx>=2.2
+ * numpy>=1.15.4
+ * scipy>=1.2.0
+ * pandas>=0.25.0,<=0.25.3 (Pandas 1.* is NOT backwards compatible!)
+ * scikit-learn>=0.20.2
+ * biopython>=1.73
+ * hdf5>=1.10.4
+ * pytables>=3.4.0 (tables in pypi)
+ * pyparsing>=2.4.6
 
 vConTACT also requires several executables, depending on use.
 
@@ -48,10 +47,10 @@ vConTACT also requires several executables, depending on use.
  * DIAMOND (only if using DIAMOND for PC construction)
  * ClusterONE (only if using for PC or VC construction)
 
-Generally you want these tools to be in your system or user PATHs. vConTACT will use any user-provided paths before 
+Generally you want these tools to be in your system or user PATHs. vConTACT2 will use any user-provided paths before 
 searching through system PATHs.
 
-Hardware requirements *can be considerable* (exceeding 48 GB!), depending  mainly on the size and complexity of the 
+Hardware requirements *can be considerable* (exceeding 48 GB!), depending mainly on the size and complexity of the 
 dataset. (Relationship between memory requirements and sequences analyzed forthcoming)
 
 ## Installation
@@ -110,7 +109,7 @@ Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It
 difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have
  been performed to recommend.*
  
- ##### Bleeding edge
+##### Bleeding edge
  
 The bioconda installation will always lag a few versions behind the most current release. If you really want the most 
 recent, then you'll need to install the dependencies and then manually install from the source.

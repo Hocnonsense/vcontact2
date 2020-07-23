@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.9.17',
+      version='0.9.18',
       description='Viral Contig Automatic Clutering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
@@ -30,20 +30,24 @@ setup(name='vcontact2',
                                   'data/ViralRefSeq-prokaryotes-v97.Merged-reference.csv',
                                   'data/ViralRefSeq-archaea-v97.faa.gz',
                                   'data/ViralRefSeq-archaea-v97.protein2contig.csv',
-                                  'data/ViralRefSeq-archaea-v97.Merged-reference.csv'
-
+                                  'data/ViralRefSeq-archaea-v97.Merged-reference.csv',
+                                  'data/ViralRefSeq-prokaryotes-v201.faa.gz',
+                                  'data/ViralRefSeq-prokaryotes-v201.protein2contig.csv',
+                                  'data/ViralRefSeq-prokaryotes-v201.Merged-reference.csv',
+                                  'data/ViralRefSeq-archaea-v201.faa.gz',
+                                  'data/ViralRefSeq-archaea-v201.protein2contig.csv',
+                                  'data/ViralRefSeq-archaea-v201.Merged-reference.csv'
                                   ]},
       scripts=['bin/vcontact2', 'bin/vcontact2_gene2genome'],
       setup_requires=['setuptools-markdown'],
       install_requires=[
-        'networkx>=1.11',
-        'numpy>=1.12.1',
-        'scipy>=0.19.0',
-        'pandas>=0.21.0,<=0.25.3',
-        'scikit-learn>=0.18.1',
-        'biopython>=1.68',
-        'tables>=3.3.0',
-        'pyparsing>=2.4.2',
-        'psutil>=5.5.0',
+        'networkx>=2.2',
+        'numpy>=1.15.4',
+        'scipy>=1.2.0',
+        'pandas>=0.25.0,<=0.25.3',
+        'scikit-learn>=0.20.2',
+        'biopython>=1.73',
+        'tables>=3.4.0',
+        'pyparsing>=2.4.6'
       ]
       )

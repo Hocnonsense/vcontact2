@@ -25,6 +25,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 from Bio import Entrez
+from tqdm import tqdm
 
 from ete3 import NCBITaxa
 
@@ -35,8 +36,9 @@ pd.set_option('display.width', 10000)
 # Load NCBI taxonomy
 ncbi = NCBITaxa()
 
-db_dir = os.path.abspath(os.path.join(os.getcwd(), '..', 'Databases'))
-refseq_dir = os.path.join('/Users/bolduc.10/Research/Databases/ViralRefSeq-v97/')
+# ncbi.update_taxonomy_database()
+
+refseq_dir = os.path.join('/Users/bolduc.10/Research/Databases/ViralRefSeq-v201/')
 
 
 def build_viral_refseq(refseq_fp_list):
@@ -78,8 +80,7 @@ def build_viral_refseq(refseq_fp_list):
 
 refseq_fps = [
     os.path.join(refseq_dir, 'viral.1.protein.faa.gz'),
-    os.path.join(refseq_dir, 'viral.2.protein.faa.gz'),
-    os.path.join(refseq_dir, 'viral.3.protein.faa.gz')
+    os.path.join(refseq_dir, 'viral.2.protein.faa.gz')
     # os.path.join(refseq_dir, 'Campylobacter_virus_IBB35.faa.tar.gz'), # ORFs spread across 5 contigs
     # os.path.join(refseq_dir, 'Enterobacteria_phage_HX01.faa.tar.gz')  # Only 62 of 269 genes in refseq?!
 ]
@@ -111,9 +112,9 @@ lite_refseq_df = refseq_df.loc[:, ['Organism', 'Accession']].copy()
 lite_refseq_df.drop_duplicates(subset=['Organism'], keep='first', inplace=True)
 
 total_organisms = len(lite_refseq_df)
-for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
+unables = []
+for index, series in tqdm(lite_refseq_df.iterrows(), total=total_organisms):
     organism = series['Organism']
-    sys.stdout.write('\rProcessing {} ({} of {})'.format(organism, n, total_organisms))
 
     taxID = ncbi.get_name_translator([organism])
 
@@ -125,7 +126,7 @@ for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
         try:
             taxID = get_tax_id(organism)  # Backup
         except IndexError or len(taxID) == 0:
-            print('Unable to identify taxID for {}'.format(organism))
+            unables.append(organism)
             taxID = '10239'
 
     else:
@@ -150,6 +151,8 @@ for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
         for lineage_n, rank_name in rank_name_dict.items():
             if rank_name not in ['no rank', 'phylum', 'class', 'subspecies', 'subgenus']:  # != 'no rank':
                 lite_refseq_df.loc[index, 'NCBI-{}'.format(rank_name)] = lineage_name
+
+print(f"Unable to identify the tax ID for:\n{'chr(10)'.join(unables)}")
 
 
 def build_ncbi_virus_report(report_fp):
@@ -532,7 +535,7 @@ for domain in ['archaea', 'bacteria']:
         # Actually doesn't matter the name, all that matters is what its taxonomy is
         sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
 
-        origin = 'RefSeq-97'
+        origin = 'RefSeq-201'
         order = np.nan
         family = np.nan
         genus = np.nan
@@ -593,7 +596,7 @@ for domain in ['archaea', 'bacteria']:
     taxonomy_df = pd.DataFrame.from_dict(taxonomy_dict, orient='index')
     taxonomy_df.sort_values(by='Organism/Name', inplace=True)
     taxonomy_df.replace('unassigned', np.nan, inplace=True)
-    taxonomy_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v97.reference.csv')
+    taxonomy_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.reference.csv')
     taxonomy_df.to_csv(taxonomy_fp, index=False)
 
     # Filter RefSeq proteins by prokaryotes-only
@@ -623,14 +626,14 @@ for domain in ['archaea', 'bacteria']:
     print(len(protein2contig_dict))
     print(len(proteins_to_write))
 
-    viral_refseq_faa_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v97.faa')
+    viral_refseq_faa_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.faa')
     with open(viral_refseq_faa_fp, 'w') as viral_refseq_faa_fh:
         SeqIO.write(proteins_to_write, viral_refseq_faa_fh, 'fasta')
 
     # WRITE OUT GENE-TO-CONTIGS FILE - for both database AND benchmarking inputs
     protein2contig_df = pd.DataFrame.from_dict(protein2contig_dict, orient='index')
     protein2contig_df.sort_values(by='contig_id', inplace=True)
-    protein2contig_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v97.protein2contig.csv')
+    protein2contig_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.protein2contig.csv')
     protein2contig_df.to_csv(protein2contig_fp, index=False)
 
 print('Program Complete')

@@ -78,9 +78,6 @@ def find_excluded(merged, ntw, c1_df):
     merged_df = merged_df[['Genome', 'VC Status'] + taxonomies]
     merged_df = merged_df[pd.notnull(merged_df['VC Status'])]
 
-    logger.info(f'There were {len(merged_df)} sequences (including references) that were singleton, outlier or '
-                f'overlaps.')
-
     return merged_df
 
 
@@ -131,8 +128,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         size = len(contig_cluster_group)
 
         cluster_contigs = contig_cluster_group['contig_id'].unique().tolist()  # WARN network is ~
-        selected_edges = edges_df[
-            (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
+        # selected_edges = edges_df[
+        #     (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
 
         # Taxonomies
         taxonomies = {
@@ -239,6 +236,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
             logger.error(e)
             exit(1)
 
+    logger.info('Writing viral cluster overview file...')
     summary_df.to_csv(os.path.join(folder, 'viral_cluster_overview.csv'))
 
     node_table['Viral Cluster'] = node_table['rev_pos_cluster'].astype(str)
@@ -252,6 +250,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     node_summary_df = pd.DataFrame(columns=node_columns)
 
     # Iterate through final table to summary everything
+    logger.info(f'Examining each viral cluster and breaking it down into individual genomes...')
     for index, vc_df in node_table.iterrows():
 
         genome = vc_df['contig_id']
@@ -272,7 +271,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         if len(genome_df) == 0:  # When VC is 'nan'
             continue
 
-        if len(genome_df) > 1:  # When genome name is subset of another
+        if len(genome_df) > 1:  # When genome name is subset of another... is this actually worth separating for here?
             for sub_index, sub_df in genome_df.iterrows():
                 if genome in sub_df['Members'].split(','):
                     genome_df = summary_df.loc[summary_df['Members'] == sub_df['Members']]
@@ -281,7 +280,7 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         if len(genome_df) > 1:  # Genome name is a string SUBSET of other members, but is not identical
             # Bacillus~virus~G vs Bacillus~virus~Glittering and Bacillus~virus~GA1
             logger.warning(f'Still identifying genome substrings for {genome}. Consider adjusting input '
-                           f'genomes naming so genome names arent potential substrings of each other.')
+                           f'genomes naming so genome names aren\'t potential substrings of each other.')
             continue
 
         genome_s = genome_df.iloc[0]
@@ -300,8 +299,8 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         vc_orders = genome_s['Orders']
 
         genus_df = taxonomy_df.loc[(taxonomy_df['Level'] == 'genus') & (taxonomy_df['Taxon'] == genus)]
-        genus_conf = False
-        genus_dist = False
+        # genus_conf = False
+        # genus_dist = False
         if genus_df.empty:
             genus_conf = vc_conf
         else:
@@ -309,13 +308,24 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
             genus_conf = genus_s['Taxon Prediction Score']
 
         try:
+            status = clustered_singletons[genome]
+        except KeyError:
+            logger.warning(f"There was an error during the handling of: {genome}\n"
+                           f"This is almost certainly due to being unable to identify {genome}'s VC status.")
+
+            if genome in excluded['Genome'].tolist():
+                continue  # It'll be handled by append later
+            else:
+                status = 'Unavailable'
+
+        try:
             node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, \
-                                                                      clustered_singletons[genome], size, subcluster, \
+                                                                      status, size, subcluster, \
                                                                       subcluster_size, quality, \
                                                                       adj_pval, vc_overall_conf, \
                                                                       vc_genera, vc_families, vc_orders, genus_conf
         except Exception as e:
-            logger.error(e)
+            logger.error(f"There was another error during the handling of {genome}: {e}")
             exit(1)
 
     node_summary_df['Quality'] = node_summary_df['Quality'].apply(lambda x: round(x, 4))
@@ -326,4 +336,5 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     node_summary_df = node_summary_df.append(excluded)[node_summary_df.columns.tolist()]
     node_summary_df[['Order', 'Family', 'Genus']] = node_summary_df[['Order', 'Family', 'Genus']].fillna('Unassigned')
 
+    logger.info(f'Writing the genome-by-genome overview file...')
     node_summary_df.to_csv(os.path.join(folder, 'genome_by_genome_overview.csv'))
