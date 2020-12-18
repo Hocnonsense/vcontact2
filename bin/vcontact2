@@ -69,10 +69,12 @@ inputs.add_argument('--db', type=str,
                              'ProkaryoticViralRefSeq88-Merged',
                              'ProkaryoticViralRefSeq94-Merged',
                              'ProkaryoticViralRefSeq97-Merged',
+                             'ProkaryoticViralRefSeq99-Merged',
                              'ProkaryoticViralRefSeq201-Merged',
                              'ArchaeaViralRefSeq85-Merged',
                              'ArchaeaViralRefSeq94-Merged',
                              'ArchaeaViralRefSeq97-Merged',
+                             'ArchaeaViralRefSeq99-Merged',
                              'ArchaeaViralRefSeq201-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
@@ -308,6 +310,8 @@ def main(args):
         'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.faa.gz'),
         'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.faa.gz'),
         'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.faa.gz'),
+        'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.faa.gz'),
+        'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.faa.gz'),
         'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.faa.gz'),
         'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.faa.gz')
     }
@@ -406,6 +410,8 @@ def main(args):
             'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.protein2contig.csv'),
             'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.protein2contig.csv'),
             'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.protein2contig.csv'),
+            'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.protein2contig.csv'),
+            'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.protein2contig.csv'),
             'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.protein2contig.csv'),
             'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.protein2contig.csv')
         }
@@ -560,6 +566,8 @@ def main(args):
             'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.Merged-reference.csv'),
             'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.Merged-reference.csv'),
             'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.Merged-reference.csv'),
+            'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.Merged-reference.csv'),
             'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.Merged-reference.csv'),
             'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.Merged-reference.csv')
         }
