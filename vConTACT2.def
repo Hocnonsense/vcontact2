@@ -20,7 +20,7 @@ From: ubuntu:18.04
     . /miniconda3/etc/profile.d/conda.sh  # Only activates conda, but don't need to "activate base"
     # "conda install" continues to work w/out the above because PATH variable exported earlier
     conda install -y conda-build
-    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas=0.25.3 scipy scikit-learn psutil setuptools-markdown pyparsing
+    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy<1.19.5 pandas=0.25.3 scipy scikit-learn psutil setuptools-markdown pyparsing
     conda install -y -c bioconda mcl blast diamond
     
     # Install vContact, wahoo!
