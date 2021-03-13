@@ -1,4 +1,4 @@
-  #!/usr/bin/env python
+#!/usr/bin/env python
 """vConTACT 2 - Copyright 2018 Benjamin Bolduc, Guilhem Doulcier.
 
 vConTACT2 (viral Contig Automatic Cluster Taxonomy) is tool to perform
