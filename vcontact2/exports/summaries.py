@@ -10,7 +10,9 @@ from scipy.stats import mannwhitneyu
 from scipy.cluster.hierarchy import linkage, cophenet
 np.warnings.filterwarnings('ignore')
 
-from pprint import pprint
+pd.set_option('display.max_rows', 100)
+pd.set_option('display.max_columns', 10)
+pd.set_option('display.width', 10000)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,13 @@ def find_excluded(merged, ntw, c1_df):
 
     # Get list of all genomes
     merged_df = pd.read_csv(merged, header=0, index_col=0)
-    merged_df.rename(columns={'order': 'Order', 'family': 'Family', 'genus': 'Genus', 'contig_id': 'Genome'},
+    merged_df.rename(columns={'kingdom': 'Kingdom',
+                              'phylum': 'Phylum',
+                              'class': 'Class',
+                              'order': 'Order',
+                              'family': 'Family',
+                              'genus': 'Genus',
+                              'contig_id': 'Genome'},
                      inplace=True)
     contigs = set(merged_df['Genome'].tolist())
 
@@ -47,6 +55,8 @@ def find_excluded(merged, ntw, c1_df):
     nodes = set(network_df['source'].tolist() + network_df['target'].tolist())
 
     # Set up final destination for singletons
+    # Pseudomonas~virus~Pf1 NOT in clusters, NOT in network  -> True Singleton, but why is it VC_303?
+    # Mycobacterium~phage~Patt IN clusters, IN network  -> Overlap
     singletons = contigs - nodes
     merged_df.loc[merged_df['Genome'].isin(singletons), 'VC Status'] = 'Singleton'
 
@@ -56,7 +66,7 @@ def find_excluded(merged, ntw, c1_df):
     def update_VCs(string: str):
 
         pieces = string.split(';')
-        updates = [int(piece)+1 for piece in pieces]
+        updates = [int(piece)+1 for piece in pieces]  # NO?
         str_fmt = '/'.join(['VC_{}'.format(update) for update in updates])
 
         return str_fmt
@@ -74,9 +84,11 @@ def find_excluded(merged, ntw, c1_df):
 
     # Filter to remove non-essential data
     # Is it present?
-    taxonomies = [taxon for taxon in ['Order', 'Family', 'Genus'] if taxon in merged_df.columns.tolist()]
+    taxonomies = [taxon for taxon in ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus'] if taxon in merged_df.columns.tolist()]
     merged_df = merged_df[['Genome', 'VC Status'] + taxonomies]
     merged_df = merged_df[pd.notnull(merged_df['VC Status'])]
+
+    merged_df.to_csv('/Users/bolduc.10/Downloads/merged_df_alterntaive.csv')
 
     return merged_df
 
@@ -86,25 +98,26 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     node_table = contigs.copy()
 
     columns = ['VC', 'Size', 'Internal Weight', 'External Weight', 'Quality', 'P-value', 'Min Dist',
-               'Max Dist', 'Total Dist', 'Below Thres', 'Taxon Prediction Score', 'Avg Dist', 'Genera', 'Families',
-               'Orders', 'Members']
-    summary_df = pd.DataFrame(columns=columns)
+               'Max Dist', 'Total Dist', 'Below Thres', 'Taxon Prediction Score', 'Avg Dist', 'Members']
 
-    taxon_columns = ['Level', 'Taxon', 'Min Dist', 'Max Dist', 'Total Dist', 'Below Thres', 'Taxon Prediction Score',
-                     'Avg Dist']
-    taxonomy_df = pd.DataFrame(columns=taxon_columns)
+    taxonomy_ranks = ['kingdom', 'phylum', 'class', 'order', 'family', 'subfamily', 'genus']
+
+    incl_taxonomy = [incl_taxon for incl_taxon in taxonomy_ranks if incl_taxon in node_table.columns.tolist()]
+
+    columns_wTaxon = columns + incl_taxonomy
+
+    summary_df = pd.DataFrame(columns=columns_wTaxon)
 
     num_contigs = len(node_table)
 
-    logger.info('Reading edges for {} contigs'.format(num_contigs))
+    logger.info(f'Reading edges for {num_contigs} contigs')
     edges_df = pd.read_csv(network, header=None, index_col=None, delimiter=' ', names=['source', 'target', 'weight'])
 
     # Reinforce contigs with taxonomy, and sort of overlapping clusters
-    predefined = ['order', 'family', 'subfamily', 'genus']
-    levels = [column for column in contigs.columns if column in predefined]
+    # levels = [column for column in contigs.columns if column in taxonomy_ranks]
 
-    if levels:
-        node_table[levels] = node_table[levels].fillna('Unassigned')
+    if incl_taxonomy:
+        node_table[incl_taxonomy] = node_table[incl_taxonomy].fillna('Unassigned')
 
     # Build PC array
     logger.info('Building PC array')
@@ -132,15 +145,13 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         #     (edges_df['source'].isin(cluster_contigs)) & (edges_df['target'].isin(cluster_contigs))]
 
         # Taxonomies
-        taxonomies = {
-            'order': [],
-            'family': [],
-            'genus': []
-        }
-        if levels:
-            for level in levels:
-                values = [item for item in contig_cluster_group[level].unique() if not pd.isnull(item)]
-                taxonomies[level] = values
+        taxonomies = dict.fromkeys(incl_taxonomy, [])
+
+        if incl_taxonomy:
+            for level in incl_taxonomy:  # paired with above, but could replace/substitute as they're the same
+                if level in contig_cluster_group:
+                    values = [item for item in contig_cluster_group[level].unique() if not pd.isnull(item)]
+                    taxonomies[level] = values
 
         vc_pc_df = profiles_df.loc[profiles_df['contig_id'].isin([contig.replace('~', ' ') for contig in cluster_contigs])].copy()
 
@@ -227,11 +238,14 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
             pval = 1
 
         try:
-            summary_df.loc[len(summary_df), columns] = 'VC_{}'.format(contig_cluster), size, internal_weights, \
-                                                       external_weights, quality, pval, min_dist, max_dist, \
-                                                       dist_size, thres_counts, frac, average_dist, \
-                                                       len(taxonomies['genus']), len(taxonomies['family']), \
-                                                       len(taxonomies['order']), ','.join(cluster_contigs)
+            pos = len(summary_df)
+            summary_df.loc[pos, columns] = f'VC_{contig_cluster}', size, internal_weights, external_weights, quality, \
+                                           pval, min_dist, max_dist, dist_size, thres_counts, frac, average_dist, \
+                                           ','.join(cluster_contigs) \
+
+            for level, items in taxonomies.items():
+                summary_df.loc[pos, level] = items  # It is nice knowing what their components are...
+
         except Exception as e:
             logger.error(e)
             exit(1)
@@ -244,31 +258,57 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
     summary_df['items'] = summary_df['VC'].apply(lambda x: len(x.split('_')))
     summary_df = summary_df[summary_df['items'] > 2]
 
-    node_columns = ['Genome', 'Order', 'Family', 'Genus', 'VC', 'VC Status', 'Size', 'VC Subcluster',
-                    'VC Subcluster Size', 'Quality', 'Adj P-value', 'Topology Confidence Score',
-                    'Genera in VC', 'Families in VC', 'Orders in VC', 'Genus Confidence Score']
+    node_columns = ['Genome'] + [str(incl_taxon).capitalize() for incl_taxon in incl_taxonomy]
+    node_columns.extend(['preVC', 'VC Status', 'VC', 'VC Size', 'Quality',
+                         'Adjusted P-value', 'VC Avg Distance', 'Topology Confidence Score', 'Genus Confidence Score'])
+    # Discontinue 'preVC Size' as it's no longer relevant
+
+    def plurizer(name):
+
+        translator = {
+            'kingdom': 'VC Kingdoms',
+            'phylum': 'VC Phyla',
+            'class': 'VC Classes',
+            'order': 'VC Orders',
+            'family': 'VC Families',
+            'genus': 'VC Genera'
+        }
+
+        if name in translator.keys():
+            return translator[name]
+
+    node_columns.extend(list(map(plurizer, incl_taxonomy)))
+
     node_summary_df = pd.DataFrame(columns=node_columns)
 
     # Iterate through final table to summary everything
     logger.info(f'Examining each viral cluster and breaking it down into individual genomes...')
     for index, vc_df in node_table.iterrows():
 
+        node_summary_pos = len(node_summary_df)  # Keep everything on same line
+
+        # Minimum information - even if matches to nothing
         genome = vc_df['contig_id']
-        host = vc_df['Host'] if 'Host' in vc_df else 'Unknown'
-        order = vc_df['order'] if 'order' in vc_df else 'Unassigned'
-        family = vc_df['family'] if 'family' in vc_df else 'Unassigned'
-        genus = vc_df['genus'] if 'genus' in vc_df else 'Unassigned'
+        node_summary_df.loc[node_summary_pos, 'Genome'] = genome
+
+        for incl_taxon in incl_taxonomy:
+            node_summary_df.loc[node_summary_pos, incl_taxon.capitalize()] = vc_df[incl_taxon]  # Shouldn't need to test
+
         vc = vc_df['Viral Cluster']
 
-        if pd.isnull(vc):
-            node_summary_df.loc[len(node_summary_df), node_columns[:6]] = genome, order, family, genus, vc, 'Unassigned'
-            continue
+        try:
+            if pd.isna(float(vc)):
+                # node_summary_df.loc[node_summary_pos, 'VC Status'] = 'Unassigned (No VC)'
+                continue
+
+        except AttributeError:
+            pass
 
         # Get VC information
         # May produce byproduct (>1, below)
         genome_df = summary_df.loc[summary_df['Members'].str.contains(genome, regex=False)]
 
-        if len(genome_df) == 0:  # When VC is 'nan'
+        if len(genome_df) == 0:  # When VC is 'nan'  # Should this even occur if viral cluster is nan?
             continue
 
         if len(genome_df) > 1:  # When genome name is subset of another... is this actually worth separating for here?
@@ -279,13 +319,15 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         # If len still >1, likely not the genome we want...
         if len(genome_df) > 1:  # Genome name is a string SUBSET of other members, but is not identical
             # Bacillus~virus~G vs Bacillus~virus~Glittering and Bacillus~virus~GA1
-            logger.warning(f'Still identifying genome substrings for {genome}. Consider adjusting input '
+            logger.warning(f'Could not identify genome substrings for {genome}. Consider adjusting input '
                            f'genomes naming so genome names aren\'t potential substrings of each other.')
             continue
 
         genome_s = genome_df.iloc[0]
 
-        size = genome_s['Size']  # Everything is assigned to a subcluster, meaning summary table will have dup cols
+        preVC = f'preVC_{vc.split("_")[0]}'  # Should non
+
+        # Everything is assigned to a subcluster, meaning summary table will have dup cols
         subcluster = genome_s['VC']
         subcluster_size = len(summary_df.loc[summary_df['VC'] == subcluster]['Members'].item().split(','))
         quality = genome_s['Quality']
@@ -294,47 +336,54 @@ def final_summary(folder, contigs, network, profiles, viral_clusters, excluded):
         vc_avg_dist = genome_s['Avg Dist']
         vc_conf = genome_s['Taxon Prediction Score']
         vc_overall_conf = quality * adj_pval
-        vc_genera = genome_s['Genera']
-        vc_families = genome_s['Families']
-        vc_orders = genome_s['Orders']
 
-        genus_df = taxonomy_df.loc[(taxonomy_df['Level'] == 'genus') & (taxonomy_df['Taxon'] == genus)]
-        # genus_conf = False
-        # genus_dist = False
-        if genus_df.empty:
-            genus_conf = vc_conf
-        else:
-            genus_s = genus_df.iloc[0]
-            genus_conf = genus_s['Taxon Prediction Score']
+        general_stats_cols = [
+            'preVC', 'VC', 'VC Size', 'Quality', 'Adjusted P-value', 'VC Avg Distance',
+            'Topology Confidence Score']  # 'Genus Confidence Score'
+        node_summary_df.loc[
+            node_summary_pos, general_stats_cols
+        ] = preVC, subcluster, subcluster_size, quality, adj_pval, vc_avg_dist, vc_overall_conf
+
+        # Add in taxonomy
+        for incl_taxon in incl_taxonomy:
+            counts = [taxon for taxon in genome_s[incl_taxon] if taxon != 'Unassigned']
+            node_summary_df.loc[node_summary_pos, plurizer(incl_taxon)] = len(set(counts))
+
+        # Just missing genome confidence
+        genus_conf = vc_conf
+        node_summary_df.loc[node_summary_pos, 'Genus Confidence Score'] = genus_conf  # or genus_conf
 
         try:
             status = clustered_singletons[genome]
+
         except KeyError:
-            logger.warning(f"There was an error during the handling of: {genome}\n"
-                           f"This is almost certainly due to being unable to identify {genome}'s VC status.")
 
             if genome in excluded['Genome'].tolist():
                 continue  # It'll be handled by append later
             else:
                 status = 'Unavailable'
 
+            logger.warning(f"There was an error during the handling of: {genome}\n"
+                           f"This is almost certainly due to being unable to identify {genome}'s VC status.")
+
         try:
-            node_summary_df.loc[len(node_summary_df), node_columns] = genome, order, family, genus, vc, \
-                                                                      status, size, subcluster, \
-                                                                      subcluster_size, quality, \
-                                                                      adj_pval, vc_overall_conf, \
-                                                                      vc_genera, vc_families, vc_orders, genus_conf
+            node_summary_df.loc[node_summary_pos, 'VC Status'] = status
+
         except Exception as e:
             logger.error(f"There was another error during the handling of {genome}: {e}")
             exit(1)
 
     node_summary_df['Quality'] = node_summary_df['Quality'].apply(lambda x: round(x, 4))
-    node_summary_df['Adj P-value'] = node_summary_df['Adj P-value'].apply(lambda x: round(x, 8))
+    node_summary_df['Adjusted P-value'] = node_summary_df['Adjusted P-value'].apply(lambda x: round(x, 8))
     node_summary_df['Genus Confidence Score'] = node_summary_df['Genus Confidence Score'].apply(lambda x: round(x, 4))
     node_summary_df['Topology Confidence Score'] = node_summary_df['Topology Confidence Score'].apply(lambda x: round(x, 4))
 
-    node_summary_df = node_summary_df.append(excluded)[node_summary_df.columns.tolist()]
-    node_summary_df[['Order', 'Family', 'Genus']] = node_summary_df[['Order', 'Family', 'Genus']].fillna('Unassigned')
+    node_summary_df.set_index('Genome', inplace=True, drop=True)
+    excluded.set_index('Genome', inplace=True, drop=True)
+
+    node_summary_df.update(excluded, overwrite=False)  # Only want it to update NaN, i.e. No status
+
+    node_summary_df.sort_index(ascending=True, inplace=True)
 
     logger.info(f'Writing the genome-by-genome overview file...')
     node_summary_df.to_csv(os.path.join(folder, 'genome_by_genome_overview.csv'))

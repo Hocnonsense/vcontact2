@@ -20,14 +20,12 @@ From: ubuntu:18.04
     . /miniconda3/etc/profile.d/conda.sh  # Only activates conda, but don't need to "activate base"
     # "conda install" continues to work w/out the above because PATH variable exported earlier
     conda install -y conda-build
-    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx 'numpy=<1.19.5' 'pandas=0.25.3' scipy scikit-learn psutil setuptools-markdown pyparsing
+    conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx 'numpy=>1.20.1' 'pandas=1.0.5' scipy scikit-learn psutil setuptools-markdown pyparsing
     conda install -y -c bioconda mcl blast diamond
     
     # Install vContact, wahoo!
     git clone https://bitbucket.org/MAVERICLab/vcontact2.git
     cd vcontact2 && pip install .  # pip is miniconda3's from PATH export
-
-    cp /vcontact2/vcontact2/data/ViralRefSeq-prokaryotes-v??.* /miniconda3/lib/python3.8/site-packages/vcontact2/data/
 
     # 'Install' ClusterONE
     cd / && wget -O /miniconda3/bin/cluster_one-1.0.jar https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar

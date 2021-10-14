@@ -33,7 +33,7 @@ vConTACT to also work.
  * networkx>=2.2
  * numpy>=1.15.4
  * scipy>=1.2.0
- * pandas>=0.25.0,<=0.25.3 (Pandas 1.* is NOT backwards compatible!)
+ * pandas>=0.25.0,<=0.25.3,=1.0.5
  * scikit-learn>=0.20.2
  * biopython>=1.73
  * hdf5>=1.10.4
@@ -115,7 +115,7 @@ The bioconda installation will always lag a few versions behind the most current
 recent, then you'll need to install the dependencies and then manually install from the source.
 
 ```bash
-conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas=0.25.3 scipy scikit-learn psutil pyparsing
+conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas=1.0.5 scipy scikit-learn psutil pyparsing
 conda install -y -c bioconda mcl blast diamond
 ```
 

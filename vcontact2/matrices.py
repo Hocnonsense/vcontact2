@@ -67,7 +67,7 @@ def bool_membership(contigs):
     """
     nb_contigs = len(contigs)
     nb_clusters = contigs.pos_cluster.max()+1
-    xy = contigs.reset_index().ix[:, ["pos", "pos_cluster"]].dropna(subset=["pos_cluster"]).values  # pos?, # membership
+    xy = contigs.reset_index().loc[:, ["pos", "pos_cluster"]].dropna(subset=["pos_cluster"]).values  # pos?, # membership
     B = sparse.coo_matrix(([1.0]*len(xy), zip(*xy)), shape=(nb_contigs, nb_clusters))
     B = B.todense()
 

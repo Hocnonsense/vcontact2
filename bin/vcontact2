@@ -71,11 +71,13 @@ inputs.add_argument('--db', type=str,
                              'ProkaryoticViralRefSeq97-Merged',
                              'ProkaryoticViralRefSeq99-Merged',
                              'ProkaryoticViralRefSeq201-Merged',
+                             'ProkaryoticViralRefSeq207-Merged',
                              'ArchaeaViralRefSeq85-Merged',
                              'ArchaeaViralRefSeq94-Merged',
                              'ArchaeaViralRefSeq97-Merged',
                              'ArchaeaViralRefSeq99-Merged',
-                             'ArchaeaViralRefSeq201-Merged'],
+                             'ArchaeaViralRefSeq201-Merged',
+                             'ArchaeaViralRefSeq207-Merged'],
                     default='ProkaryoticViralRefSeq85-ICTV', dest='db',
                     help='Select a reference database to de novo cluster proteins against. If \'None\' selected, be '
                          'aware that there will be no references included in the analysis.')
@@ -330,7 +332,9 @@ def main(args):
         'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.faa.gz'),
         'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.faa.gz'),
         'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.faa.gz'),
-        'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.faa.gz')
+        'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.faa.gz'),
+        'ArchaeaViralRefSeq207-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v207.faa.gz'),
+        'ProkaryoticViralRefSeq207-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v207.faa.gz')
     }
 
     # Test for presence of headers here, before Diamond and other seq analysis is done. Though out of order, better be
@@ -443,7 +447,9 @@ def main(args):
             'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.protein2contig.csv'),
             'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.protein2contig.csv'),
             'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.protein2contig.csv'),
-            'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.protein2contig.csv')
+            'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.protein2contig.csv'),
+            'ArchaeaViralRefSeq207-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v207.protein2contig.csv'),
+            'ProkaryoticViralRefSeq207-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v207.protein2contig.csv')
         }
 
         usr_gene2genome_fp = args.proteins_fp
@@ -583,28 +589,43 @@ def main(args):
     profiles_csv = {"matrix": matrix, "singletons": singletons}
 
     taxonomies = ['Organism/Name', 'origin', 'order', 'family', 'genus']
+    extended_taxonomies = ['Organism/Name', 'origin', 'kingdom', 'phylum', 'order', 'class', 'family', 'genus']
     if args.db != 'None':
         print("\n\n" + "{:-^80}".format("Adding Taxonomy"))
 
         ref_tax = {
             'ProkaryoticViralRefSeq85-ICTV': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.ICTV-reference.csv'),
             'ArchaeaViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v85.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v88.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq85-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v85.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq88-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v88.Merged-reference.csv'),
             'ArchaeaViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v94.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v94.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq94-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v94.Merged-reference.csv'),
             'ArchaeaViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v97.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v97.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq97-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v97.Merged-reference.csv'),
             'ArchaeaViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v99.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v99.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq99-Merged': os.path.join(db_root,
+                                                            'ViralRefSeq-prokaryotes-v99.Merged-reference.csv'),
             'ArchaeaViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v201.Merged-reference.csv'),
-            'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root, 'ViralRefSeq-prokaryotes-v201.Merged-reference.csv')
+            'ProkaryoticViralRefSeq201-Merged': os.path.join(db_root,
+                                                             'ViralRefSeq-prokaryotes-v201.Merged-reference.csv'),
+            'ArchaeaViralRefSeq207-Merged': os.path.join(db_root, 'ViralRefSeq-archaea-v207.Merged-reference.csv'),
+            'ProkaryoticViralRefSeq207-Merged': os.path.join(db_root,
+                                                             'ViralRefSeq-prokaryotes-v207.Merged-reference.csv')
         }
 
         ref = ref_tax[args.db]
         ref_df = pd.read_csv(ref, header=0)
 
-        ref_tax = ref_df[taxonomies]
+        if set(extended_taxonomies).issubset(ref_df.columns):
+            ref_tax = ref_df[extended_taxonomies]
+
+        else:
+            ref_tax = ref_df[taxonomies]
+
         ref_tax['Organism/Name'] = ref_tax['Organism/Name'].str.replace(' ', '~')  # Ensure c1 can process names
 
         merged_df = contigs_csv_df.merge(ref_tax, how='left', left_on='contig_id', right_on='Organism/Name')
@@ -781,12 +802,12 @@ def main(args):
 
     # Final cleanup and adding back in those genomes
     logger.info("Building final summary table")
-    # try:
-    vcontact2.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
-                                              profiles_fp, vc, excluded)
-    # except Exception as e:
-    #     logger.error(f"Error in exporting the final summary table: {e}")
-    #     exit(1)
+    try:
+        vcontact2.exports.summaries.final_summary(output_dir, vc.contigs, os.path.join(output_dir, gc.name + '.ntw'),
+                                                  profiles_fp, vc, excluded)
+    except Exception as e:
+        logger.error(f"Error in exporting the final summary table: {e}")
+        exit(1)
 
 
 if __name__ == "__main__":

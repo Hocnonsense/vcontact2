@@ -249,7 +249,7 @@ class Modules(object):
         b_values = matrix_modules.sum(0).A1
 
         # contig in cluster
-        xy = contigs.reset_index().ix[:, ["pos_cluster", "pos"]].dropna(subset=["pos_cluster"]).sort_values(by="pos").values
+        xy = contigs.reset_index().loc[:, ["pos_cluster", "pos"]].dropna(subset=["pos_cluster"]).sort_values(by="pos").values
         
         pa_matrix = sparse.coo_matrix(([1]*len(xy), zip(*xy)), shape=(nb_clusters, nb_contigs))
 
