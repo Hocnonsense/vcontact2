@@ -88,8 +88,6 @@ def find_excluded(merged, ntw, c1_df):
     merged_df = merged_df[['Genome', 'VC Status'] + taxonomies]
     merged_df = merged_df[pd.notnull(merged_df['VC Status'])]
 
-    merged_df.to_csv('/Users/bolduc.10/Downloads/merged_df_alterntaive.csv')
-
     return merged_df
 
 
