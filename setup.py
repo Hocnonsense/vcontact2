@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.10.1',
-      description='Viral Contig Automatic Clutering and Taxonomy',
+      version='0.11.0',
+      description='Viral Contig Automatic Clustering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
       long_description_markdown_filename='README.md',
@@ -54,6 +54,8 @@ setup(name='vcontact2',
         'scikit-learn>=0.20.2',
         'biopython>=1.73',
         'tables>=3.4.0',
-        'pyparsing>=2.4.6'
+        'pyparsing>=2.4.6',
+        'clusterone>=1.0',
+        'diamond>=0.9.14'
       ]
       )

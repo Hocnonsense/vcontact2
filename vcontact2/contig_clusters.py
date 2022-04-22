@@ -209,7 +209,11 @@ class ContigCluster(object):
         if not os.path.exists(fi_clusters) or force:
 
             # Disable --fluff as it's not in published algorithm or used in published manuscript
-            cluster_one_cmd = 'java -jar {} {} --input-format edge_list --output-format csv'.format(cluster_one, fi_ntw)
+            if 'jar' in cluster_one:
+                cluster_one_cmd = 'java -jar {} {} --input-format edge_list --output-format csv'.format(cluster_one,
+                                                                                                        fi_ntw)
+            else:
+                cluster_one_cmd = '{} {} --input-format edge_list --output-format csv'.format(cluster_one, fi_ntw)
 
             for opt, val in options.items():
                 cluster_one_cmd += ' {} {}'.format(opt, val)

@@ -89,7 +89,7 @@ inputs.add_argument('--vcs-mode', type=str, choices=['ClusterONE', 'MCL'], defau
                     help='Whether to use ClusterONE or MCL for Viral Cluster (VC) generation.')
 
 inputs.add_argument('--c1-bin', type=str, dest='cluster_one',
-                    help='Location for clusterONE java file. This MUST SPECIFY the full path to "cluster_one-1.0.jar".')
+                    help='Location for clusterONE file. Path only used if vConTACT cant find in $PATH.')
 
 inputs.add_argument('--blastp-bin', type=str, dest='blastp_fp',
                     help='Location for BLASTP executable. Path only used if vConTACT cant find in $PATH.')
@@ -106,9 +106,11 @@ inputs.add_argument('-t', '--threads', type=int, dest='threads', default=psutil.
 
 pcs = parser.add_argument_group('Protein Cluster (PC) Arguments')
 
-pcs.add_argument('--blast-evalue', default='0.0001', type=float, dest='evalue',
-                 help='E-value used by BLASTP when creating the protein-protein similarity network.'
-                      ' (--rel-mode BLASTP only)')
+pcs.add_argument('--pc-evalue', default='0.0001', type=float, dest='evalue',
+                 help='E-value used by BLASTP or Diamond when creating the protein-protein similarity network.')
+
+pcs.add_argument('--reported-alignments', default=25, type=int, dest='pc_alignments',
+                 help='Maximum number of target sequences per query to report alignments for in Diamond.')
 
 pcs.add_argument('--max-overlap', default=0.8, type=float, dest='pc_overlap',
                  help='Specifies the maximum allowed overlap between two clusters. (ClusterONE only)')
@@ -248,17 +250,24 @@ def main(args):
 
     # Checks
     cluster_one_fp = args.cluster_one
+    cluster_one_java = False  # Need to keep track if it's jarfile or not
     if ('ClusterONE' in args.pcs_mode) or ('ClusterONE' in args.vc_mode):
         if not cluster_one_fp:  # If user hasn't provided a path
             cluster_one_fp = shutil.which('cluster_one-1.0.jar')
-            if cluster_one_fp is None:
-                logger.error("Could not find ClusterONE java file.")
-                exit(1)
+            if cluster_one_fp is None:  # Try other install method
+                cluster_one_fp = shutil.which('clusterone')
+                if cluster_one_fp is None:
+                    logger.error("Could not find ClusterONE java file.")
+                    exit(1)
             else:
+                cluster_one_java = True
                 logger.info('Found ClusterONE: {}'.format(cluster_one_fp))
 
             # Ensure that ClusterONE is working
-            cluster_one_cmd = 'java -jar {} --help'.format(cluster_one_fp)
+            if cluster_one_java:
+                cluster_one_cmd = 'java -jar {} --help'.format(cluster_one_fp)
+            else:
+                cluster_one_cmd = '{} --help'.format(cluster_one_fp)
 
             logger.info('Verifying clusterONE works...')
             res = subprocess.run(cluster_one_cmd, shell=True,
@@ -410,7 +419,8 @@ def main(args):
 
                     logger.info("Creating Diamond database and running Diamond...")
                     db_fp = vcontact2.protein_clusters.make_diamond_db(proteins_aa_fp, output_dir, cpus)
-                    similarity_fp = vcontact2.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, diamond_out_fp)
+                    similarity_fp = vcontact2.protein_clusters.run_diamond(proteins_aa_fp, db_fp, cpus, args.evalue,
+                                                                           args.pc_alignments, diamond_out_fp)
                 else:
                     logger.info("Re-using existing Diamond file...")
                     similarity_fp = diamond_out_fp
@@ -506,7 +516,7 @@ def main(args):
 
         # Load the clusters...
         logger.info("Building the cluster and profiles (this may take some time...)\nIf it fails, try re-running "
-                    "using --blast-fp flag and specifiying merged.self-diamond.tab (or merged.self-blastp.tab)")
+                    "using --blast-fp flag and specifying merged.self-diamond.tab (or merged.self-blastp.tab)")
         protein_df, clusters_df, profiles_df, contigs_df = vcontact2.protein_clusters.build_clusters(
             pcs_fp, gene2genome_df, pcs_mode)
         # protein_df = protein_id, contig_id, keywords, cluster

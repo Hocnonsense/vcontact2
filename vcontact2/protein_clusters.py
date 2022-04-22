@@ -85,11 +85,12 @@ def make_diamond_db(aa_fp, db_dir, cpu: int):
     return diamond_db_fp
 
 
-def run_diamond(aa_fp, db_fp, cpu: int, diamond_out_fn):
+def run_diamond(aa_fp, db_fp, cpu: int, evalue: float, alignments: int, diamond_out_fn):
 
     # More sensitive as an option?
-    diamond_cmd = ['diamond', 'blastp', '--threads', str(cpu), '--sensitive', '-d', db_fp, '-q', aa_fp,
-                   '-o', diamond_out_fn]
+    diamond_cmd = ['diamond', 'blastp', '--threads', str(cpu),
+                   '--sensitive', '--evalue', str(evalue), '--max-target-seqs', str(alignments),
+                   '-d', db_fp, '-q', aa_fp, '-o', diamond_out_fn]
 
     logger.info("Running Diamond...")
     res = subprocess.run(diamond_cmd, check=True, stdout=subprocess.PIPE)
@@ -156,8 +157,12 @@ def make_protein_clusters_one(blast_fp, c1_bin, out_p, overlap: float, penalty: 
 
     logger.debug("Running ClusterONE...")
 
-    cluster_one_cmd = 'java -jar {} {}.abc --input-format edge_list --output-format csv ' \
-                      '--max-overlap {} --penalty {} --haircut {}'.format(c1_bin, abc_fp, overlap, penalty, haircut)
+    if '.jar' in c1_bin:
+        cluster_one_cmd = 'java -jar {} {}.abc --input-format edge_list --output-format csv ' \
+                          '--max-overlap {} --penalty {} --haircut {}'.format(c1_bin, abc_fp, overlap, penalty, haircut)
+    else:
+        cluster_one_cmd = '{} {}.abc --input-format edge_list --output-format csv ' \
+                          '--max-overlap {} --penalty {} --haircut {}'.format(c1_bin, abc_fp, overlap, penalty, haircut)
 
     cluster_one_fn = "{}_one_{}_{}_{}.clusters".format(blast_fn, overlap, penalty, haircut)
     cluster_one_fp = os.path.join(out_p, cluster_one_fn)

@@ -22,15 +22,11 @@ From: ubuntu:18.04
     conda install -y conda-build
     conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy 'pandas=>1.0.5' scipy \
     scikit-learn psutil setuptools-markdown pyparsing
-    conda install -y -c bioconda mcl blast diamond
+    conda install -y -c bioconda mcl blast diamond clusterone
     
     # Install vContact, wahoo!
     git clone https://bitbucket.org/MAVERICLab/vcontact2.git
     cd vcontact2 && pip install .  # pip is miniconda3's from PATH export
-
-    # 'Install' ClusterONE
-    cd / && wget --no-check-certificate -O /miniconda3/bin/cluster_one-1.0.jar https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
-    chmod +x /miniconda3/bin/cluster_one-1.0.jar
 
     # Clean stuff up to reduce disk space
     apt-get clean && conda build purge-all && rm Miniconda3-latest-Linux-x86_64.sh
