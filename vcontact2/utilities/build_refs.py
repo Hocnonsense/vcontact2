@@ -23,9 +23,10 @@ import numpy as np
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import IUPAC
 from Bio import Entrez
 from tqdm import tqdm
+from pathlib import Path
+from pprint import pprint
 
 from ete3 import NCBITaxa
 
@@ -36,9 +37,10 @@ pd.set_option('display.width', 10000)
 # Load NCBI taxonomy
 ncbi = NCBITaxa()
 
-# ncbi.update_taxonomy_database()
+# ncbi.update_taxonomy_database()  # Ensure current
 
-refseq_dir = os.path.join('/Users/bolduc.10/Research/Databases/ViralRefSeq-v201/')
+version = '211'
+refseq_dir = Path(f'/Users/bolduc.10/Research/Databases/ViralRefSeq-v{version}/')
 
 
 def build_viral_refseq(refseq_fp_list):
@@ -47,27 +49,26 @@ def build_viral_refseq(refseq_fp_list):
     refseq_dict = {}
 
     for refseq_fp in refseq_fp_list:
-        print('Processing {}'.format(refseq_fp))
+        print(f'Processing {refseq_fp}')
 
         with gzip.open(refseq_fp, 'rt') as refseq_fh:  # MUST BE rt, NOT rb, r or any other r*
             for record in SeqIO.parse(refseq_fh, 'fasta'):
 
                 # NCBI taxdmp provides taxID and a number of synonyms, mispellings, etc
-
                 accession = record.id
                 rdesc = record.description
                 rseq = str(record.seq)
                 rprotein = rdesc.split(' ', 1)[-1].split('[')[0].strip()
 
-                rorganism = re.findall(r'\[([^]]*)\]', rdesc)[-1]
+                virus_name = re.findall(r'\[([^]]*)\]', rdesc)[-1]
 
-                if '[' in rorganism:
-                    rorganism = rorganism.split(' - ')[0].split('-[')[0].split(' [')[0]
-                    if '[' in rorganism:
-                        print(rorganism)
+                if '[' in virus_name:
+                    virus_name = virus_name.split(' - ')[0].split('-[')[0].split(' [')[0]
+                    if '[' in virus_name:
+                        print(virus_name)
 
                 refseq_dict[accession] = {
-                    'Organism': rorganism,
+                    'Virus Name': virus_name,
                     'Accession': accession,
                     'Seq': rseq,
                     'Protein': rprotein,
@@ -80,15 +81,12 @@ def build_viral_refseq(refseq_fp_list):
 
 refseq_fps = [
     os.path.join(refseq_dir, 'viral.1.protein.faa.gz'),
-    os.path.join(refseq_dir, 'viral.2.protein.faa.gz')
-    # os.path.join(refseq_dir, 'Campylobacter_virus_IBB35.faa.tar.gz'), # ORFs spread across 5 contigs
-    # os.path.join(refseq_dir, 'Enterobacteria_phage_HX01.faa.tar.gz')  # Only 62 of 269 genes in refseq?!
+    os.path.join(refseq_dir, 'viral.2.protein.faa.gz'),
+    os.path.join(refseq_dir, 'viral.3.protein.faa.gz'),
+    os.path.join(refseq_dir, 'viral.4.protein.faa.gz')
 ]
 # RefSeq has all the possible genomes/genes to which we have access
 refseq_df = build_viral_refseq(refseq_fps)
-
-# Only (???) phage mistaken naming in RefSeq? This phage name exists in proteins, but its genome name cant be found?!?!
-# refseq_df['Organism'] = refseq_df['Organism'].str.replace('Enterobacteria phage phiK', 'Escherichia virus phiK')
 
 
 def get_tax_id(species):
@@ -108,15 +106,16 @@ def get_tax_data(taxid):
 
 
 Entrez.email = "bolduc.10@osu.edu"
-lite_refseq_df = refseq_df.loc[:, ['Organism', 'Accession']].copy()
-lite_refseq_df.drop_duplicates(subset=['Organism'], keep='first', inplace=True)
 
-total_organisms = len(lite_refseq_df)
-unables = []
-for index, series in tqdm(lite_refseq_df.iterrows(), total=total_organisms):
-    organism = series['Organism']
+# Don't need to "clean up" refseq dataframe, it's not really a system burden
+refseq_refs_df = refseq_df.drop_duplicates(subset=['Virus Name'], keep='first').copy()
 
-    taxID = ncbi.get_name_translator([organism])
+unknown = []
+ranks = ['Realm', 'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Subfamily', 'Genus', 'Species']
+for index, series in tqdm(refseq_refs_df.iterrows(), total=len(refseq_refs_df), unit=' genomes'):
+    virus_name = series['Virus Name']
+
+    taxID = ncbi.get_name_translator([virus_name])
 
     if len(taxID) > 1:
         sys.stderr.write('More than 1 tax id found')
@@ -124,15 +123,15 @@ for index, series in tqdm(lite_refseq_df.iterrows(), total=total_organisms):
     elif len(taxID) == 0:
 
         try:
-            taxID = get_tax_id(organism)  # Backup
+            taxID = get_tax_id(virus_name)  # Backup
         except IndexError or len(taxID) == 0:
-            unables.append(organism)
+            unknown.append(virus_name)
             taxID = '10239'
 
     else:
         # print('Unable to find taxID for {} initially, but found {}'.format(organism, taxID))
         taxID = list(taxID.values())[0][0]
-        lite_refseq_df.loc[index, 'TaxID'] = str(taxID)
+        refseq_refs_df.loc[index, 'TaxID'] = str(taxID)
 
     if isinstance(taxID, np.ndarray):  # Else int
         taxID = str(taxID[0])
@@ -149,10 +148,11 @@ for index, series in tqdm(lite_refseq_df.iterrows(), total=total_organisms):
         rank_name_dict = ncbi.get_rank([lineage_num])  # Dictionary with taxID: rank name
 
         for lineage_n, rank_name in rank_name_dict.items():
-            if rank_name not in ['no rank', 'phylum', 'class', 'subspecies', 'subgenus']:  # != 'no rank':
-                lite_refseq_df.loc[index, 'NCBI-{}'.format(rank_name)] = lineage_name
+            if rank_name in [ele.lower() for ele in ranks]:  # != 'no rank':
+                refseq_refs_df.loc[index, 'NCBI-{}'.format(rank_name)] = lineage_name
 
-print(f"Unable to identify the tax ID for:\n{'chr(10)'.join(unables)}")
+for unknown_ in unknown:
+    print(f"Unable to identify the tax ID for: {unknown_}")
 
 
 def build_ncbi_virus_report(report_fp):
@@ -172,468 +172,171 @@ def build_ncbi_virus_report(report_fp):
 
 
 # NCBI virus report file with summary information on a subset of viruses, especially host
-virus_report_fp = os.path.join(refseq_dir, 'viruses.txt')  # Organism
-virus_report_df = build_ncbi_virus_report(virus_report_fp)  # Organism/Name
+ncbi_report_fp = refseq_dir / 'viruses.txt'  # Organism
+ncbi_report_df = build_ncbi_virus_report(ncbi_report_fp)  # Organism/Name
 
-# Minor MANUAL adjustments
-taxid_adjustments = {
-    '745177': '166921',  # 745177 merged to 166921 on Nov 24, 2017
-    '867696': '1987993'  # 867696 points to 1987993 on NCBI taxonomy page
-    }
-virus_report_df['TaxID'] = virus_report_df['TaxID'].replace(taxid_adjustments)
+# Minor MANUAL adjustments - ETE3 will warn if necessary
 
-lite_virus_report_df = virus_report_df.loc[:, ['Organism/Name', 'Group', 'SubGroup', 'Host']].copy()
-lite_virus_report_df.drop_duplicates(subset=['Organism/Name'], keep='first', inplace=True)
-lite_virus_report_df.set_index('Organism/Name', inplace=True)
+ncbi_report_df = ncbi_report_df.drop_duplicates(subset=['Organism/Name'], keep='first')
 
-# Merge does work here, but need to "double" merge as RefSeq and NCBI do not always agree on taxonomy
-for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
-    organism = series['Organism']
-    ncbi_name = series['NCBI-species']
-    sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
+# Regardless of how complete the NCBI virus report is - if this script can't parse the virus name or get a TaxID from
+# the amino acid sequences, then there's no point. A virus w/out proteins/amino acid sequences is discarded
+merged_report_df = refseq_refs_df.merge(ncbi_report_df, how='left', on='TaxID')
 
-    try:
-        lite_refseq_df.loc[index, 'Host'] = lite_virus_report_df.loc[organism, 'Host']
-        lite_refseq_df.loc[index, 'Report-Name'] = organism
-        lite_refseq_df.loc[index, 'Report-Family'] = lite_virus_report_df.loc[organism, 'SubGroup']
-    except KeyError:  # Organism name doesnt exist
-        try:
-            if not pd.isnull(ncbi_name):
-                lite_refseq_df.loc[index, 'Host'] = lite_virus_report_df.loc[ncbi_name, 'Host']
-                lite_refseq_df.loc[index, 'Report-Name'] = ncbi_name
-                lite_refseq_df.loc[index, 'Report-Family'] = lite_virus_report_df.loc[ncbi_name, 'SubGroup']
-        except KeyError:
-            continue
+# Host, Report-Name, Report-Family
 
-
-def build_ncbi_taxonomy(names_fp):
-    print('Processing taxonomy information from {}'.format(names_fp))
-
-    # Really NCBI?
-    names_df = pd.read_csv(names_fp, delimiter='\t\|\t', header=None, engine='python',
-                           names=['tax_id', 'name_txt', 'unique name', 'unique class'])
-    names_df['tax_id'] = names_df['tax_id'].astype('str')
-
-    # Really NCBI... X2!
-    names_df['unique class'] = names_df['unique class'].str.replace('\t|', '')
-    names_df['unique class'] = names_df['unique class'].str.replace('|', '')
-
-    names_taxid_adjustments = {
-        '1914209': '197310'  # 1914209 points to nothing on NCBI taxonomy page
-    }
-    names_df['tax_id'] = names_df['tax_id'].replace(names_taxid_adjustments)
-
-    names_df.set_index('name_txt', inplace=True)
-
-    return names_df
-
-
-def build_ictv_report(ictv_report):
-    print('\nReading ICTV taxonomy file {}'.format(ictv_report))
-    # Sort, Order, Family, Subfamily, Genus, Species, Type Species? Exemplar Accession Number, Exemplar Isolate,
-    # Genome Composition, Last Change, MSL of Last Change, Proposal, Taxon History URL
-    report_df = pd.read_csv(ictv_report_fp, delimiter=',', header=0, quotechar='"', dtype=object)
-
-    return report_df
-
-
-# Load ICTV taxonomy
-ictv_report_fp = os.path.join(refseq_dir, 'ICTV_Master_Species_List_2018a_v1.csv')
-ictv_report_df = build_ictv_report(ictv_report_fp)
-
-lite_ictv_report_df = ictv_report_df.loc[:, ['Order', 'Family', 'Subfamily', 'Genus', 'Species']].copy()
-lite_ictv_report_df.drop_duplicates(subset=['Species'], keep='first', inplace=True)
-lite_ictv_report_df.set_index('Species', inplace=True)
-
-for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
-    organism = series['Organism']
-    ncbi_name = series['NCBI-species']
-    sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
-
-    try:
-        lite_refseq_df.loc[index, 'ICTV-Species'] = organism
-        for level in lite_ictv_report_df.columns:
-            lite_refseq_df.loc[index, 'ICTV-{}'.format(level)] = lite_ictv_report_df.loc[organism, level]
-    except KeyError:  # Organism name doesnt exist
-        try:
-            if not pd.isnull(ncbi_name):
-                lite_refseq_df.loc[index, 'ICTV-Species'] = ncbi_name
-                for level in lite_ictv_report_df.columns:
-                    lite_refseq_df.loc[index, 'ICTV-{}'.format(level)] = lite_ictv_report_df.loc[ncbi_name, level]
-        except KeyError:
-            continue
+# After merge between NCBI viral refseq proteins and NCBI virus report ON TaxID, either "Virus Name" or "Species" will
+# need to match ICTV "Species" report. Since everything is based on refseq proteins, MIGHT AS WELL just incorporate
+# virushostdb BEFORE ICTV taxonomy..
 
 virus_host_db_fp = os.path.join(refseq_dir, 'virushostdb.tsv')
 virus_host_db_df = pd.read_csv(virus_host_db_fp, delimiter='\t', header=0, dtype={'virus tax id': str,
                                                                                   'host tax id': str})
-virus_host_db_df.drop_duplicates(subset=['virus tax id'], keep='first', inplace=True)
-virus_host_db_df.set_index('virus tax id', inplace=True)
+virus_host_db_df = virus_host_db_df.drop_duplicates(subset=['virus tax id'], keep='first')
 
-for n, (index, series) in enumerate(lite_refseq_df.iterrows(), start=1):
-    organism = series['Organism']
-    ncbi_name = series['NCBI-species']
-    taxID = series['TaxID']
-    sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
+merged_report_df = merged_report_df.merge(virus_host_db_df, how='left', left_on='TaxID', right_on='virus tax id')
 
-    host = series['Host']
-    if (not pd.isnull(taxID)) and (taxID in virus_host_db_df.index):  # (pd.isnull(host)) - doesn't matter, can filter
-        try:
-            lite_refseq_df.loc[index, 'Virus-Host-DB Host'] = virus_host_db_df.loc[taxID, 'host lineage'].split(';')[0]
-        except AttributeError:
-            continue
+merged_report_df = merged_report_df.drop(columns=['Seq'])  # It goes to 1 protein from many, no need to keep
 
-lite_refseq_fp = os.path.join(refseq_dir, 'lite_refseq_df.csv')
-lite_refseq_df.to_csv(lite_refseq_fp, sep=',', quotechar='"')
 
-for domain in ['archaea', 'bacteria']:
+def build_ictv_report(ictv_report):
+    print(f'\nReading ICTV taxonomy file {ictv_report}')
+    # Sort, Order, Family, Subfamily, Genus, Species, Type Species? Exemplar Accession Number, Exemplar Isolate,
+    # Genome Composition, Last Change, MSL of Last Change, Proposal, Taxon History URL
+    report_df = pd.read_csv(ictv_report_fp, delimiter=',', header=0, quotechar='"', dtype=object)
 
-    prokaryote_df = lite_refseq_df[(lite_refseq_df['Host'].str.contains(domain, na=False)) |
-                                   (lite_refseq_df['Virus-Host-DB Host'].str.contains(domain.capitalize(), na=False))].copy()
+    # Remove all the "sub" from ranks
+    report_df = report_df.drop(columns=[col for col in report_df.columns.tolist() if 'Sub' in col])
+    report_df = report_df.dropna(axis='columns', how='all')
 
-    # Haloarcula californiae icosahedral virus 1 changed from 'environment' to 'archaea' as host
+    return report_df
 
-    # A byproduct of speed and not parsing NCBI's entire synonyms database, it misses 34 of the 2K+ viruses
-    aka = {
-        'Acinetobacter phage vB AbaP CEB1': 'Acinetobacter phage vB_AbaP_CEB1',
-        'Actinomyces phage Av-1': 'Actinomyces virus Av1',
-        'Bacillus phage BMBtpLA': 'Bacillus phage vB_BtS_BMBtp3',
-        'Bacillus phage G': 'Bacillus virus G',
-        'Bacillus virus Gamma': 'Bacillus phage Gamma',  # !
-        'Bacillus virus GIL16c': 'Bacillus phage GIL16c',  # !
-        'Bordetella phage BPP-1': 'Bordetella virus BPP1',
-        'Cronobacter phage ESP2949-1': 'Cronobacter virus ESP29491',
-        'Endosymbiont phage APSE-1': 'Hamiltonella virus APSE1',
-        'Enterobacteria phage JS98': 'Escherichia phage JS98',
-        'Enterobacteria phage P22': 'Salmonella virus P22',
-        'Enterobacteria phage PRD1': 'Salmonella virus PRD1',
-        'Enterobacteria phage PsP3': 'Salmonella virus PsP3',
-        'Enterococcus phage vB IME195': 'Enterococcus phage vB_EfaP_IME195',
-        'Enterococcus phage vB IME196': 'Enterococcus phage vB_EfaS_IME196',
-        'Enterococcus phage vB IME197': 'Enterococcus phage vB_EfaS_IME197',
-        'Enterococcus phage vB IME198': 'Enterococcus phage vB_EfaS_IME198',  # Exists, but "_" vB_IME198
-        'Escherichia phage Jk06': 'Escherichia virus KP26',
-        'Klebsiella phage vB KP1': 'Klebsiella phage vB_Kp1',
-        'Mesorhizobium phagevB MloP Lo5R7ANS': 'Mesorhizobium phage vB_MloP_Lo5R7ANS',
-        'Mycobacterium phage Lockley': 'Mycobacterium virus Lockley',
-        'Mycobacterium phage Rumpelstiltskin': 'Mycobacterium virus Rumpelstiltskin',
-        'Pseudoalteromonas Phage H103': 'Pseudoalteromonas phage H103',
-        'Pseudomonas phage PA1phi': 'Pseudomonas virus PA1KOR',
-        'Proteus phage pPM 1': 'Proteus phage pPM_01',
-        'Rhodococcus phage E3 ': 'Rhodococcus phage E3',
-        ' Rhodococcus phage E3': 'Rhodococcus phage E3',
-        'Streptococcus pyogenes phage 315.1': 'Streptococcus phage 315.1',
-        'Streptococcus pyogenes phage 315.2': 'Streptococcus phage 315.2',
-        'Streptococcus pyogenes phage 315.3': 'Streptococcus phage 315.3',
-        'Streptococcus pyogenes phage 315.4': 'Streptococcus phage 315.4',
-        'Streptococcus pyogenes phage 315.5': 'Streptococcus phage 315.5',
-        'Streptococcus pyogenes phage 315.6': 'Streptococcus phage 315.6',
-        'uncultured phage crAssphage': 'uncultured crAssphage'
-    }
-    # Acinetobacter phage vB_AbaP_CEB1
-    # Campylobacter phage IBB35
-    # Chlamydia phage 3 (2 and 4 are in there?!)
-    # Salmonella phage g341c
 
-    reverse_replacer = {
-        'Acinetobacter phage IME AB3': 'Acinetobacter phage IME_AB3',
-     'Acinetobacter phage vB AbaM Acibel004': 'Acinetobacter phage vB_AbaM_Acibel004',
-     'Acinetobacter phage vB AbaM IME200': 'Acinetobacter phage vB_AbaM_IME200',
-     'Acinetobacter phage vB AbaM phiAbaA1': 'Acinetobacter phage vB_AbaM_phiAbaA1',
-     'Acinetobacter phage vB AbaP Acibel007': 'Acinetobacter phage vB_AbaP_Acibel007',
-     'Acinetobacter phage vB AbaP PD-6A3': 'Acinetobacter phage vB_AbaP_PD-6A3',
-     'Acinetobacter phage vB AbaP PD-AB9': 'Acinetobacter phage vB_AbaP_PD-AB9',
-     'Acinetobacter phage vB AbaS TRS1': 'Acinetobacter phage vB_AbaS_TRS1',
-     'Aeromonas phage vB AsaM-56': 'Aeromonas phage vB_AsaM-56',
-     'Alteromonas phage vB AmaP AD45-P1': 'Alteromonas phage vB_AmaP_AD45-P1',
-     'Arthrobacter phage vB ArS-ArV2': 'Arthrobacter phage vB_ArS-ArV2',
-     'Arthrobacter phage vB ArtM-ArV1': 'Arthrobacter phage vB_ArtM-ArV1',
-     'Bacillus phage vB BanS-Tsamsa': 'Bacillus phage vB_BanS-Tsamsa',
-     'Bacillus phage vB BceM Bc431v3': 'Bacillus phage vB_BceM_Bc431v3',
-     'Bacillus phage vB BhaS-171': 'Bacillus phage vB_BhaS-171',
-     'Bacillus phage vB BtS BMBtp3': 'Bacillus phage vB_BtS_BMBtp3',
-     'Citrobacter phage vB CfrM CfP1': 'Citrobacter phage vB_CfrM_CfP1',
-     'Clostridium phage vB CpeS-CP51': 'Clostridium phage vB_CpeS-CP51',
-     'Cronobacter phage vB CsaM GAP161': 'Cronobacter phage vB_CsaM_GAP161',
-     'Cronobacter phage vB CsaM GAP31': 'Cronobacter phage vB_CsaM_GAP31',
-     'Cronobacter phage vB CsaM GAP32': 'Cronobacter phage vB_CsaM_GAP32',
-     'Cronobacter phage vB CsaP GAP52': 'Cronobacter phage vB_CsaP_GAP52',
-     'Cronobacter phage vB CskP GAP227': 'Cronobacter phage vB_CskP_GAP227',
-     'Enterobacteria phage UAB Phi20': 'Enterobacteria phage UAB_Phi20',
-     'Enterobacteria phage UAB Phi78': 'Enterobacteria phage UAB_Phi78',
-     'Enterobacteria phage VT2phi 272': 'Enterobacteria phage VT2phi_272',
-     'Enterobacteria phage vB EcoM VR5': 'Enterobacteria phage vB_EcoM_VR5',
-     'Enterobacteria phage vB EcoP ACG-C91': 'Enterobacteria phage vB_EcoP_ACG-C91',
-     'Enterobacteria phage vB EcoS NBD2': 'Enterobacteria phage vB_EcoS_NBD2',
-     'Enterobacteria phage vB EcoS Rogue1': 'Enterobacteria phage vB_EcoS_Rogue1',
-     'Enterobacteria phage vB KleM-RaK2': 'Enterobacteria phage vB_KleM-RaK2',
-     'Enterobacteriaphage UAB Phi87': 'Enterobacteriaphage UAB_Phi87',
-     'Enterococcus phage IME EF3': 'Enterococcus phage IME_EF3',
-     'Enterococcus phage vB EfaP IME195': 'Enterococcus phage vB_EfaP_IME195',
-     'Enterococcus phage vB EfaS IME196': 'Enterococcus phage vB_EfaS_IME196',
-     'Enterococcus phage vB EfaS IME197': 'Enterococcus phage vB_EfaS_IME197',
-     'Enterococcus phage vB EfaS IME198': 'Enterococcus phage vB_EfaS_IME198',
-     'Enterococcus phage vB Efae230P-4': 'Enterococcus phage vB_Efae230P-4',
-     'Erwinia phage vB EamM Asesino': 'Erwinia phage vB_EamM_Asesino',
-     'Erwinia phage vB EamM Caitlin': 'Erwinia phage vB_EamM_Caitlin',
-     'Erwinia phage vB EamM ChrisDB': 'Erwinia phage vB_EamM_ChrisDB',
-     'Erwinia phage vB EamM EarlPhillipIV': 'Erwinia phage vB_EamM_EarlPhillipIV',
-     'Erwinia phage vB EamM Huxley': 'Erwinia phage vB_EamM_Huxley',
-     'Erwinia phage vB EamM Kwan': 'Erwinia phage vB_EamM_Kwan',
-     'Erwinia phage vB EamM Phobos': 'Erwinia phage vB_EamM_Phobos',
-     'Erwinia phage vB EamM-Y2': 'Erwinia phage vB_EamM-Y2',
-     'Erwinia phage vB EamP Frozen': 'Erwinia phage vB_EamP_Frozen',
-     'Erwinia phage vB EamP-L1': 'Erwinia phage vB_EamP-L1',
-     'Erwinia phage vB EamP-S6': 'Erwinia phage vB_EamP-S6',
-     'Escherichia phage 64795 ec1': 'Escherichia phage 64795_ec1',
-     'Escherichia phage LM33 P1': 'Escherichia phage LM33_P1',
-     'Escherichia phage vB Eco ACG-M12': 'Escherichia phage vB_Eco_ACG-M12',
-     'Escherichia phage vB EcoM 112': 'Escherichia phage vB_EcoM_112',
-     'Escherichia phage vB EcoM ACG-C40': 'Escherichia phage vB_EcoM_ACG-C40',
-     'Escherichia phage vB EcoM AYO145A': 'Escherichia phage vB_EcoM_AYO145A',
-     'Escherichia phage vB EcoM Alf5': 'Escherichia phage vB_EcoM_Alf5',
-     'Escherichia phage vB EcoM ECO1230-10': 'Escherichia phage vB_EcoM_ECO1230-10',
-     'Escherichia phage vB EcoM JS09': 'Escherichia phage vB_EcoM_JS09',
-     'Escherichia phage vB EcoM PhAPEC2': 'Escherichia phage vB_EcoM_PhAPEC2',
-     'Escherichia phage vB EcoM VR20': 'Escherichia phage vB_EcoM_VR20',
-     'Escherichia phage vB EcoM VR25': 'Escherichia phage vB_EcoM_VR25',
-     'Escherichia phage vB EcoM VR26': 'Escherichia phage vB_EcoM_VR26',
-     'Escherichia phage vB EcoM VR7': 'Escherichia phage vB_EcoM_VR7',
-     'Escherichia phage vB EcoM-UFV13': 'Escherichia phage vB_EcoM-UFV13',
-     'Escherichia phage vB EcoM-VpaE1': 'Escherichia phage vB_EcoM-VpaE1',
-     'Escherichia phage vB EcoM-ep3': 'Escherichia phage vB_EcoM-ep3',
-     'Escherichia phage vB EcoP 24B': 'Escherichia phage vB_EcoP_24B',
-     'Escherichia phage vB EcoP G7C': 'Escherichia phage vB_EcoP_G7C',
-     'Escherichia phage vB EcoP GA2A': 'Escherichia phage vB_EcoP_GA2A',
-     'Escherichia phage vB EcoP PhAPEC5': 'Escherichia phage vB_EcoP_PhAPEC5',
-     'Escherichia phage vB EcoP PhAPEC7': 'Escherichia phage vB_EcoP_PhAPEC7',
-     'Escherichia phage vB EcoP SU10': 'Escherichia phage vB_EcoP_SU10',
-     'Escherichia phage vB EcoS AHP42': 'Escherichia phage vB_EcoS_AHP42',
-     'Escherichia phage vB EcoS AHS24': 'Escherichia phage vB_EcoS_AHS24',
-     'Escherichia phage vB EcoS AKS96': 'Escherichia phage vB_EcoS_AKS96',
-     'Escherichia phage vB EcoS FFH1': 'Escherichia phage vB_EcoS_FFH1',
-     'Gokushovirinae Bog1183 53': 'Gokushovirinae Bog1183_53',
-     'Gokushovirinae Bog5712 52': 'Gokushovirinae Bog5712_52',
-     'Gokushovirinae Bog8989 22': 'Gokushovirinae Bog8989_22',
-     'Gokushovirinae Fen672 31': 'Gokushovirinae Fen672_31',
-     'Gokushovirinae Fen7875 21': 'Gokushovirinae Fen7875_21',
-     'Klebsiella phage vB Kp1': 'Klebsiella phage vB_Kp1',
-     'Klebsiella phage vB KpnM KB57': 'Klebsiella phage vB_KpnM_KB57',
-     'Klebsiella phage vB KpnM KpV477': 'Klebsiella phage vB_KpnM_KpV477',
-     'Klebsiella phage vB KpnP KpV289': 'Klebsiella phage vB_KpnP_KpV289',
-     'Klebsiella phage vB KpnP SU503': 'Klebsiella phage vB_KpnP_SU503',
-     'Klebsiella phage vB KpnP SU552A': 'Klebsiella phage vB_KpnP_SU552A',
-     'Listeria phage vB LmoM AG20': 'Listeria phage vB_LmoM_AG20',
-     'Listeria phage vB LmoS 188': 'Listeria phage vB_LmoS_188',
-     'Listeria phage vB LmoS 293': 'Listeria phage vB_LmoS_293',
-     'Mannheimia phage vB MhM 3927AP2': 'Mannheimia phage vB_MhM_3927AP2',
-     'Mannheimia phage vB MhM 587AP1': 'Mannheimia phage vB_MhM_587AP1',
-     'Mannheimia phage vB MhS 1152AP2': 'Mannheimia phage vB_MhS_1152AP2',
-     'Mannheimia phage vB MhS 535AP2': 'Mannheimia phage vB_MhS_535AP2',
-     'Mannheimia phage vB MhS 587AP2': 'Mannheimia phage vB_MhS_587AP2',
-     'Mesorhizobium phage vB MloP Lo5R7ANS': 'Mesorhizobium phage vB_MloP_Lo5R7ANS',
-     'Microbacterium phage vB MoxS-ISF9': 'Microbacterium phage vB_MoxS-ISF9',
-     'Microviridae Bog1249 12': 'Microviridae Bog1249_12',
-     'Microviridae Bog5275 51': 'Microviridae Bog5275_51',
-     'Microviridae Bog9017 22': 'Microviridae Bog9017_22',
-     'Microviridae Fen2266 11': 'Microviridae Fen2266_11',
-     'Microviridae Fen418 41': 'Microviridae Fen418_41',
-     'Microviridae Fen4707 41': 'Microviridae Fen4707_41',
-     'Microviridae Fen685 11': 'Microviridae Fen685_11',
-     'Microviridae Fen7786 21': 'Microviridae Fen7786_21',
-     'Microviridae Fen7895 21': 'Microviridae Fen7895_21',
-     'Microviridae Fen7918 21': 'Microviridae Fen7918_21',
-     'Microviridae Fen7940 21': 'Microviridae Fen7940_21',
-     'Morganella phage vB MmoM MP1': 'Morganella phage vB_MmoM_MP1',
-     'Morganella phage vB MmoP MP2': 'Morganella phage vB_MmoP_MP2',
-     'Mycobacterium phage vB MapS FF47': 'Mycobacterium phage vB_MapS_FF47',
-     'Paenibacillus phage phiIBB Pl23': 'Paenibacillus phage phiIBB_Pl23',
-     'Paracoccus phage vB PmaS IMEP1': 'Paracoccus phage vB_PmaS_IMEP1',
-     'Propionibacterium phage ATCC29399B C': 'Propionibacterium phage ATCC29399B_C',
-     'Propionibacterium phage ATCC29399B T': 'Propionibacterium phage ATCC29399B_T',
-     'Propionibacterium phage P100 1': 'Propionibacterium phage P100_1',
-     'Propionibacterium phage P100 A': 'Propionibacterium phage P100_A',
-     'Proteus phage pPM 01': 'Proteus phage pPM_01',
-     'Proteus phage vB PmiM Pm5461': 'Proteus phage vB_PmiM_Pm5461',
-     'Proteus phage vB PmiP Pm5460': 'Proteus phage vB_PmiP_Pm5460',
-     'Pseudomonas phage CHA P1': 'Pseudomonas phage CHA_P1',
-     'Pseudomonas phage PAK P1': 'Pseudomonas phage PAK_P1',
-     'Pseudomonas phage PAK P2': 'Pseudomonas phage PAK_P2',
-     'Pseudomonas phage PAK P3': 'Pseudomonas phage PAK_P3',
-     'Pseudomonas phage PAK P4': 'Pseudomonas phage PAK_P4',
-     'Pseudomonas phage PAK P5': 'Pseudomonas phage PAK_P5',
-     'Pseudomonas phage YMC11/06/C171 PPU BP': 'Pseudomonas phage YMC11/06/C171_PPU_BP',
-     'Pseudomonas phage YMC11/07/P54 PAE BP': 'Pseudomonas phage YMC11/07/P54_PAE_BP',
-     'Pseudomonas phage vB Pae PS44': 'Pseudomonas phage vB_Pae_PS44',
-     'Pseudomonas phage vB Pae-Kakheti25': 'Pseudomonas phage vB_Pae-Kakheti25',
-     'Pseudomonas phage vB Pae-TbilisiM32': 'Pseudomonas phage vB_Pae-TbilisiM32',
-     'Pseudomonas phage vB PaeM C2-10 Ab1': 'Pseudomonas phage vB_PaeM_C2-10_Ab1',
-     'Pseudomonas phage vB PaeM MAG1': 'Pseudomonas phage vB_PaeM_MAG1',
-     'Pseudomonas phage vB PaeM PAO1 Ab03': 'Pseudomonas phage vB_PaeM_PAO1_Ab03',
-     'Pseudomonas phage vB PaeM PAO1 Ab27': 'Pseudomonas phage vB_PaeM_PAO1_Ab27',
-     'Pseudomonas phage vB PaeM PS24': 'Pseudomonas phage vB_PaeM_PS24',
-     'Pseudomonas phage vB PaeP C2-10 Ab09': 'Pseudomonas phage vB_PaeP_C2-10_Ab09',
-     'Pseudomonas phage vB PaeP C2-10 Ab22': 'Pseudomonas phage vB_PaeP_C2-10_Ab22',
-     'Pseudomonas phage vB PaeP MAG4': 'Pseudomonas phage vB_PaeP_MAG4',
-     'Pseudomonas phage vB PaeP PAO1 Ab05': 'Pseudomonas phage vB_PaeP_PAO1_Ab05',
-     'Pseudomonas phage vB PaeP PPA-ABTNL': 'Pseudomonas phage vB_PaeP_PPA-ABTNL',
-     'Pseudomonas phage vB PaeP Tr60 Ab31': 'Pseudomonas phage vB_PaeP_Tr60_Ab31',
-     'Pseudomonas phage vB PaeP p2-10 Or1': 'Pseudomonas phage vB_PaeP_p2-10_Or1',
-     'Pseudomonas phage vB PaeS PAO1 Ab18': 'Pseudomonas phage vB_PaeS_PAO1_Ab18',
-     'Pseudomonas phage vB PaeS PAO1 Ab30': 'Pseudomonas phage vB_PaeS_PAO1_Ab30',
-     'Pseudomonas phage vB PaeS PM105': 'Pseudomonas phage vB_PaeS_PM105',
-     'Pseudomonas phage vB PaeS SCH Ab26': 'Pseudomonas phage vB_PaeS_SCH_Ab26',
-     'Pseudomonas phage vB PsyM KIL1': 'Pseudomonas phage vB_PsyM_KIL1',
-     'Rhizobium phage vB RglS P106B': 'Rhizobium phage vB_RglS_P106B',
-     'Rhizobium phage vB RleM P10VF': 'Rhizobium phage vB_RleM_P10VF',
-     'Rhizobium phage vB RleM PPF1': 'Rhizobium phage vB_RleM_PPF1',
-     'Rhizobium phage vB RleS L338C': 'Rhizobium phage vB_RleS_L338C',
-     'Rhodovulum phage vB RhkS P1': 'Rhodovulum phage vB_RhkS_P1',
-     'Salmonella phage 100268 sal2': 'Salmonella phage 100268_sal2',
-     'Salmonella phage 103203 sal5': 'Salmonella phage 103203_sal5',
-     'Salmonella phage 118970 sal1': 'Salmonella phage 118970_sal1',
-     'Salmonella phage 118970 sal2': 'Salmonella phage 118970_sal2',
-     'Salmonella phage 118970 sal3': 'Salmonella phage 118970_sal3',
-     'Salmonella phage 118970 sal4': 'Salmonella phage 118970_sal4',
-     'Salmonella phage 64795 sal3': 'Salmonella phage 64795_sal3',
-     'Salmonella phage vB SPuM SP116': 'Salmonella phage vB_SPuM_SP116',
-     'Salmonella phage vB SalM PM10': 'Salmonella phage vB_SalM_PM10',
-     'Salmonella phage vB SalM SJ2': 'Salmonella phage vB_SalM_SJ2',
-     'Salmonella phage vB SalM SJ3': 'Salmonella phage vB_SalM_SJ3',
-     'Salmonella phage vB SemP Emek': 'Salmonella phage vB_SemP_Emek',
-     'Salmonella phage vB SenMS16': 'Salmonella phage vB_SenMS16',
-     'Salmonella phage vB SenS-Ent2': 'Salmonella phage vB_SenS-Ent2',
-     'Salmonella phage vB SenS-Ent3': 'Salmonella phage vB_SenS-Ent3',
-     'Salmonella phage vB SnwM CGG4-1': 'Salmonella phage vB_SnwM_CGG4-1',
-     'Salmonella phage vB SosS Oslo': 'Salmonella phage vB_SosS_Oslo',
-     'Staphylococcus phage vB SauM Remus': 'Staphylococcus phage vB_SauM_Remus',
-     'Staphylococcus phage vB SauM Romulus': 'Staphylococcus phage vB_SauM_Romulus',
-     'Staphylococcus phage vB SauS phi2': 'Staphylococcus phage vB_SauS_phi2',
-     'Staphylococcus phage vB SepS SEP9': 'Staphylococcus phage vB_SepS_SEP9',
-     'Stenotrophomonas phage vB SmaS-DLP 2': 'Stenotrophomonas phage vB_SmaS-DLP_2',
-     'Synechococcus phage S-RIM2 R1 1999': 'Synechococcus phage S-RIM2 R1_1999',
-     'Vibrio phage ICP2 2013 A Haiti': 'Vibrio phage ICP2_2013_A_Haiti',
-     'Vibrio phage vB VchM-138': 'Vibrio phage vB_VchM-138',
-     'Vibrio phage vB VpaM MAR': 'Vibrio phage vB_VpaM_MAR',
-     'Vibrio phage vB VpaS MAR10': 'Vibrio phage vB_VpaS_MAR10',
-     'Xanthomonas phage vB XveM DIBBI': 'Xanthomonas phage vB_XveM_DIBBI',
-     'Yersinia phage vB YenM TG1': 'Yersinia phage vB_YenM_TG1',
-     'Yersinia phage vB YenP AP10': 'Yersinia phage vB_YenP_AP10',
-     'Yersinia phage vB YenP AP5': 'Yersinia phage vB_YenP_AP5',
-     'Yersinia phage vB YenP ISAO8': 'Yersinia phage vB_YenP_ISAO8'}
+# The LAST part of this merger is adding in ICTV taxonomy
+# Load ICTV taxonomy
+ictv_report_fp = refseq_dir / 'ICTV_Master_Species_List_2021.v1.csv'
+ictv_report_df = build_ictv_report(ictv_report_fp)
 
-    replacer = {**aka, **reverse_replacer}
+# Clean up
+ictv_report_df = ictv_report_df.drop_duplicates(subset=['Species'], keep='first')
+# Don't want to confuse the two taxonomies
+ictv_report_df.columns = [f'ICTV-{col}' if col in ranks else col for col in ictv_report_df.columns]
 
-    prokaryote_fp = os.path.join(refseq_dir, f'lite_refseq_{domain}_df.csv')
-    prokaryote_df.to_csv(prokaryote_fp, sep=',', quotechar='"')
+# 'Virus Name' = NCBI viral refseq proteins
+# 'Organism/Name = NCBI virus report
+# 'NCBI-Species' = ETE3 of TaxID... with TaxID coming from BOTH/MERGED above 2
 
-    # final_refseq = refseq_df.merge(, left_on='Organism', right_on='Organism', how='right')
+# Find which name is used by ICTV, then create column that uses that as a join key
+merged_report_df['join name'] = np.nan
+virus_names = merged_report_df['Virus Name'].tolist()
+organism_names = merged_report_df['Organism/Name'].tolist()
+ete_names = merged_report_df['NCBI-species'].tolist()
+
+for idx, series in tqdm(ictv_report_df.iterrows(), unit=' ICTV names', total=len(ictv_report_df)):
+    ictv_name = series['ICTV-Species']
+
+    if ictv_name in virus_names:
+        merged_report_df.loc[merged_report_df['Virus Name'] == ictv_name, 'join name'] = ictv_name
+    elif ictv_name in organism_names:
+        merged_report_df.loc[merged_report_df['Organism/Name'] == ictv_name, 'join name'] = ictv_name
+    elif ictv_name in ete_names:
+        merged_report_df.loc[merged_report_df['NCBI-species'] == ictv_name, 'join name'] = ictv_name
+
+# Try merge on NCBI name(s), then ETE3 species name
+merged_report_df = merged_report_df.merge(ictv_report_df, how='left', left_on='join name', right_on='ICTV-Species')
+merged_report_df['host'] = merged_report_df['host lineage'].apply(lambda x: x.split(';')[0] if not pd.isnull(x) else np.nan)
+
+# Filter to remove Eukaryota - this doesn't really affect anything downstream, other than having a smaller table
+# Might as well rename
+merged_report_df['Host'] = merged_report_df['Host'].apply(lambda x: x.capitalize() if not pd.isnull(x) else np.nan)  # vs .replace ??
+
+merged_report_df = merged_report_df[(merged_report_df['host'].isin(['Bacteria', 'Archaea'])) |
+                                    (merged_report_df['Host'].isin(['Bacteria', 'Archaea']))]
+
+merged_report_fp = refseq_dir / 'merged_report.csv'
+merged_report_df.to_csv(merged_report_fp, sep=',', quotechar='"')
+
+for domain in ['Archaea', 'prokaryotes']:
+
+    host_container = domain
+    if host_container == 'prokaryotes':
+        host_container = 'Bacteria|Archaea'
+
+    domain_df = merged_report_df[(merged_report_df['Host'].str.contains(host_container, na=False)) |
+                                 (merged_report_df['host'].str.contains(host_container, na=False))].copy()
+
     # WRITE OUT ['Organism/Name', 'origin', 'order', 'family', 'genus'] for TAXONOMY
-    taxonomy_dict = {}
-    for n, (index, series) in enumerate(prokaryote_df.iterrows(), start=1):
-        organism = series['Organism']
-        ncbi_name = series['NCBI-species']
-        # Actually doesn't matter the name, all that matters is what its taxonomy is
-        sys.stdout.write('\rProcessing {}/{} ({} of {})'.format(organism, ncbi_name, n, total_organisms))
+    taxonomy_columns = ['origin', 'Organism/Name'] + [rank.lower() for rank in ranks]
+    taxonomy_df = pd.DataFrame(index=domain_df['Virus Name'].tolist(),
+                               columns=taxonomy_columns)
 
-        origin = 'RefSeq-201'
-        order = np.nan
-        family = np.nan
-        genus = np.nan
+    taxonomy_df['origin'] = f'RefSeq-v{version}'
+    taxonomy_df['Organism/Name'] = domain_df['Virus Name'].tolist()
 
-        # if pd.isnull(series['2017-Order']) and (series['2017-Order'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Order']) and (series['ICTV-Order'] != 'unassigned'):
-            if pd.isnull(series['NCBI-order']) and (series['NCBI-order'] != 'unassigned'):
-                order = 'unassigned'
-            else:
-                order = series['NCBI-order']
-        else:
-            order = series['ICTV-Order']
-        # else:
-        #     order = series['2017-Order']
+    def better_col(ref_comp, other_comp):
 
-        # if pd.isnull(series['2017-Family']) and (series['2017-Family'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Family']) and (series['ICTV-Family'] != 'unassigned'):
-            if pd.isnull(series['NCBI-family']) and (series['NCBI-family'] != 'unassigned'):
-                family = 'unassigned'
-            else:
-                family = series['NCBI-family']
-        else:
-            family = series['ICTV-Family']
-        # else:
-        #     family = series['2017-Family']
+        # If anything in reference is there, it supersedes anything else
+        if pd.notnull(ref_comp):
+            if ref_comp != 'unassigned':
+                return ref_comp  # If something's there and it's not unassigned...
 
-        # if pd.isnull(series['2017-Subfamily']) and (series['2017-subfamily'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Subfamily']) and (series['ICTV-Subfamily'] != 'unassigned'):
-            if pd.isnull(series['NCBI-subfamily']) and (series['NCBI-subfamily'] != 'unassigned'):
-                subfamily = 'unassigned'
-            else:
-                subfamily = series['NCBI-subfamily']
-        else:
-            subfamily = series['ICTV-Subfamily']
-        # else:
-        #     subfamily = series['2017-Family']
+        if pd.notnull(other_comp):
+            if other_comp != 'unassigned':
+                return other_comp
 
-        # if pd.isnull(series['2017-Genus']) and (series['2017-Genus'] != 'unassigned'):
-        if pd.isnull(series['ICTV-Genus']) and (series['ICTV-Genus'] != 'unassigned'):
-            if pd.isnull(series['NCBI-genus']) and (series['NCBI-genus'] != 'unassigned'):
-                genus = 'unassigned'
-            else:
-                genus = series['NCBI-genus']
-        else:
-            genus = series['ICTV-Genus']
-        # else:
-        #     genus = series['2017-Genus']
+        return np.nan
 
-        taxonomy_dict[organism] = {
-            'Organism/Name': organism,
-            'origin': origin,
-            'order': order,
-            'family': family,
-            'subfamily': subfamily,
-            'genus': genus
-        }
+    ictv_ranks = [f'ICTV-{rank}' for rank in ranks]  # No need for .capitalize
+    ncbi_ranks = [f'NCBI-{rank.lower()}' for rank in ranks]
 
-    taxonomy_df = pd.DataFrame.from_dict(taxonomy_dict, orient='index')
-    taxonomy_df.sort_values(by='Organism/Name', inplace=True)
-    taxonomy_df.replace('unassigned', np.nan, inplace=True)
-    taxonomy_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.reference.csv')
+    for ictv_rank, ncbi_rank in zip(ictv_ranks, ncbi_ranks):
+        if (ictv_rank in domain_df.columns.tolist()) and (ncbi_rank in domain_df.columns.tolist()):
+            values = domain_df.apply(lambda x: better_col(x[ictv_rank], x[ncbi_rank]), axis=1).values
+            taxonomy_df[ncbi_rank.split('-')[-1].lower()] = values  # set entire df of that rank
+
+    # Clean up empty columns
+    taxonomy_df = taxonomy_df.dropna(axis='columns', how='all')
+
+    # Don't need species...
+    taxonomy_df = taxonomy_df.drop(columns=['species'])
+
+    # It's been years since ICTV updated their naming scheme and - since then - NCBI has updated to reflect that
+    taxonomy_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain.lower()}-v{version}.Merged-reference.csv')
     taxonomy_df.to_csv(taxonomy_fp, index=False)
 
-    # Filter RefSeq proteins by prokaryotes-only
-    final_refseq = refseq_df[refseq_df['Organism'].isin(prokaryote_df['Organism'].tolist())]
+    # Can now build the proteins and gene-to-genome files
+    domain_refseq = refseq_df[refseq_df['Virus Name'].isin(taxonomy_df.index.tolist())]
 
-    # WRITE OUT VIRAL SEQUENCES
-    proteins_to_write = []
-    protein2contig_dict = {}
-    for i, series in final_refseq.iterrows():
+    protein_records = []
+    gene2genome_d = {}
+    for i, series in domain_refseq.iterrows():
 
-        sequence = series['Seq']
-        organism = series['Organism']
+        seq = series['Seq']
+        genome = series['Virus Name']
         accession = series['Accession']
         protein = series['Protein']
-        description = '{} [{}]'.format(protein, organism)
+        description = f'{protein} [{genome}]'
 
-        ncbi_record = SeqRecord(Seq(sequence, IUPAC.protein), id=accession, name=accession, description=description)
+        record = SeqRecord(Seq(seq), id=accession, name=accession, description=description)
 
-        proteins_to_write.append(ncbi_record)
+        protein_records.append(record)
 
-        protein2contig_dict[accession] = {
+        gene2genome_d[accession] = {
             'protein_id': accession,
-            'contig_id': organism,
+            'contig_id': genome,
             'keywords': protein
         }
 
-    print(len(protein2contig_dict))
-    print(len(proteins_to_write))
+    print(f'There are {len(gene2genome_d)} proteins in the dictionary, {len(protein_records)} to write')
 
-    viral_refseq_faa_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.faa')
+    viral_refseq_faa_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v{version}.faa')
     with open(viral_refseq_faa_fp, 'w') as viral_refseq_faa_fh:
-        SeqIO.write(proteins_to_write, viral_refseq_faa_fh, 'fasta')
+        SeqIO.write(protein_records, viral_refseq_faa_fh, 'fasta')
 
     # WRITE OUT GENE-TO-CONTIGS FILE - for both database AND benchmarking inputs
-    protein2contig_df = pd.DataFrame.from_dict(protein2contig_dict, orient='index')
-    protein2contig_df.sort_values(by='contig_id', inplace=True)
-    protein2contig_fp = os.path.join(refseq_dir, f'ViralRefSeq-{domain}-v201.protein2contig.csv')
+    protein2contig_df = pd.DataFrame.from_dict(gene2genome_d, orient='index')
+    protein2contig_df = protein2contig_df.sort_values(by='contig_id')
+    protein2contig_fp = refseq_dir / f'ViralRefSeq-{domain}-v{version}.protein2contig.csv'
     protein2contig_df.to_csv(protein2contig_fp, index=False)
 
 print('Program Complete')
