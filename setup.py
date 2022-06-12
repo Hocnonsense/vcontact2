@@ -1,11 +1,15 @@
 from setuptools import setup
 
+with open('README.md') as f:
+    long_description = f.read()
+
 setup(name='vcontact2',
       version='0.11.2',
       description='Viral Contig Automatic Clustering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
-      long_description_markdown_filename='README.md',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       author_email='bolduc.10@osu.edu',
       license='GPLv3',
       packages=['vcontact2', 'vcontact2.exports', 'vcontact2.utilities'],
@@ -51,7 +55,6 @@ setup(name='vcontact2',
                                   'data/ViralRefSeq-archaea-v211.Merged-reference.csv'
                                   ]},
       scripts=['bin/vcontact2', 'bin/vcontact2_gene2genome'],
-      setup_requires=['markdown'],
       install_requires=[
         'networkx>=2.2',
         'numpy>=1.20.1',
