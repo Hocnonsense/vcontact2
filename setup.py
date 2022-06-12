@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='vcontact2',
-      version='0.11.1',
+      version='0.11.2',
       description='Viral Contig Automatic Clustering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
@@ -42,20 +42,27 @@ setup(name='vcontact2',
                                   'data/ViralRefSeq-prokaryotes-v207.Merged-reference.csv',
                                   'data/ViralRefSeq-archaea-v207.faa.gz',
                                   'data/ViralRefSeq-archaea-v207.protein2contig.csv',
-                                  'data/ViralRefSeq-archaea-v207.Merged-reference.csv'
+                                  'data/ViralRefSeq-archaea-v207.Merged-reference.csv',
+                                  'data/ViralRefSeq-prokaryotes-v211.faa.gz',
+                                  'data/ViralRefSeq-prokaryotes-v211.protein2contig.csv',
+                                  'data/ViralRefSeq-prokaryotes-v211.Merged-reference.csv',
+                                  'data/ViralRefSeq-archaea-v211.faa.gz',
+                                  'data/ViralRefSeq-archaea-v211.protein2contig.csv',
+                                  'data/ViralRefSeq-archaea-v211.Merged-reference.csv'
                                   ]},
       scripts=['bin/vcontact2', 'bin/vcontact2_gene2genome'],
-      setup_requires=['setuptools-markdown'],
+      setup_requires=['markdown'],
       install_requires=[
         'networkx>=2.2',
         'numpy>=1.20.1',
-        'scipy>=1.2.0',
+        'scipy>=1.6.0',
         'pandas>=1.0.5',
-        'scikit-learn>=0.20.2',
-        'biopython>=1.73',
+        'scikit-learn>=0.24.1',
+        'biopython>=1.78',
         'tables>=3.4.0',
         'pyparsing>=2.4.6',
-        'clusterone>=1.0',
-        'diamond>=0.9.14'
+        'clusterone',  # Bioconda=1.0 only, pip has a lot
+        # 'diamond>=0.9.14', conda-forge has different diamond
+        'psutil>=5.8.0'
       ]
       )

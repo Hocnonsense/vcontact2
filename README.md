@@ -31,21 +31,22 @@ vConTACT to also work.
 
  * python >=3.7 (not python 2.7 safe!)
  * networkx>=2.2
- * numpy>=1.15.4
- * scipy>=1.2.0
- * pandas>=0.25.0,<=0.25.3,=1.0.5
- * scikit-learn>=0.20.2
- * biopython>=1.73
+ * numpy>=1.20.1
+ * scipy>=1.6.0
+ * pandas>=1.0.5
+ * scikit-learn>=0.24.1
+ * biopython>=1.78
  * hdf5>=1.10.4
  * pytables>=3.4.0 (tables in pypi)
  * pyparsing>=2.4.6
+ * psutil>=5.8.0
 
 vConTACT also requires several executables, depending on use.
 
- * MCL (always required)
- * BLASTP (only if using BLASTP for PC construction)
- * DIAMOND (only if using DIAMOND for PC construction)
- * ClusterONE (only if using for PC or VC construction)
+ * mcl>=14.137
+ * blast>=2.6.0
+ * diamond>=0.9.14
+ * clusterone
 
 Generally you want these tools to be in your system or user PATHs. vConTACT2 will use any user-provided paths before 
 searching through system PATHs.
@@ -78,9 +79,9 @@ Once built, the container can be run via:
 singularity run vConTACT2.sif <args>
 ```
 
-#### Conda-based installation (Mac/Linux) (recommended) UPDATED!!!
+#### Conda-based installation (Mac/Linux) (recommended)
 
-We highly recommend using a python environment when installing this software, as dependency versions can (and often do)
+We highly recommend using a python environment when installing this software, as dependency versions can (and often can)
  conflict with each other.
 
 For this, we'll be installing everything into a single directory that the user has access to. This is generally the 
@@ -90,9 +91,6 @@ First, grab our favorite manager, Anaconda/Miniconda and install. If it offers t
 the user's $PATH, then do so. Otherwise, follow the instructions (at the end of the install) to ensure the install is 
 activated.
 
-UPDATE DEC 2019: We now have vConTACT2 available in Bioconda! Wahoo! It gets us 99% through the installation.
-
-
 ```bash
 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh
@@ -100,22 +98,19 @@ bash Miniconda3-latest-Linux-x86_64.sh
 conda create --name vContact2 python=3
 source activate vContact2
 conda install -y -c bioconda vcontact2 mcl blast diamond
-# Install ClusterONE
-wget https://paccanarolab.org/static_content/clusterone/cluster_one-1.0.jar
-cp cluster_one-1.0.jar $HOME/conda/bin/
 ```
 
 Note: DIAMOND is highly recommended over BLASTP for any large-scale analysis. It’s much faster and shows little/no 
 difference in the final VCs. *This hasn't been officially benchmarked, but a sufficient number of in-house analyses have
  been performed to recommend.*
- 
+
 ##### Bleeding edge
- 
-The bioconda installation will always lag a few versions behind the most current release. If you really want the most 
-recent, then you'll need to install the dependencies and then manually install from the source.
+
+It is possible for the bioconda version to lag behind the most recent releaase. If you really want 
+the most recent update, you'll need to install the dependencies and then manually install from source.
 
 ```bash
-conda install -y -c conda-forge hdf5 pytables pypandoc biopython networkx numpy pandas=1.0.5 scipy scikit-learn psutil pyparsing
+conda install -y -c conda-forge pytables biopython networkx numpy pandas scipy scikit-learn psutil pyparsing
 conda install -y -c bioconda mcl blast diamond
 ```
 
@@ -123,45 +118,25 @@ Finally, install vConTACT2 from source file.
 
 ```bash
 wget https://bitbucket.org/MAVERICLab/vcontact2/get/master.tar.gz
-tar xvf MAVERICLab-vcontact2-XXXXXXX.tar.gz
-cd MAVERICLab-vcontact2-XXXXXXX && pip install .
+tar xvf MAVERICLab-vcontact2-XXXXXXX.tar.gz
+cd MAVERICLab-vcontact2-XXXXXXX && python3 -m pip install .
 ```
 
 (Some users have mentioned that their version of pip installs to a non-conda location. In this case, run "pip install 
 --prefix=$HOME/conda/bin)
-
-**Alternatively, install from bitbucket.**
-
-```bash
-git clone bitbucket.org/MAVERICLab/vcontact2
-cd vcontact2 && pip install .
-```
-
-You might encounter an issue where pip install doesn't install ALL of the database files. This should have been fixed 
-several versions ago, but just in case, you'll have to manually copy the database files to wherever pip is installing 
-vContact2 to.
-
-```bash
-cp vcontact2/vcontact/data/ViralRefSeq-prokaryotes-v??.* $HOME/conda/lib/python3.7/site-packages/vcontact/data/
-```
-
-*Your installation path might be at a different location.* Usually it's some form of 
-"<where-you-installed-conda>/lib/python3.X/site-packages/vcontact/data/"
 
 ## Usage (for the impatient)
 
 Singularity
 
 ```bash
-singularity run vConTACT2.sif --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+singularity run vConTACT2.sif --raw-proteins [proteins file] --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq211-Merged' --output-dir [target output directory]
 ```
-
-"--c1-bin" *must* point to the jarfile. For the singularity image, it's been set up to be located in /usr/local/bin/
 
 Local installs
 
 ```bash
-vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq97-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact2 --raw-proteins [proteins file] --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq211-Merged' --output-dir [target output directory]
 ```
 
 ## Input files and formats
@@ -190,7 +165,7 @@ PLQADPPGFEPGTSGSGGGKEGTERRKIALVANLRQYATDGNIKAFYDYLMNERGISEKT
 AKDYINAISKPYKETRDAQKAYRLFARFLASRNIIHDEFADKILKAVKVKKANADIYIPT
 ```
 
-2\. A "gene-to-genome" mapping file, in either tsv (tab)- or csv (comma)-separated format.
+2. A "gene-to-genome" mapping file, in either tsv (tab)- or csv (comma)-separated format.
 
 ```
 protein_id,contig_id,keywords
@@ -231,7 +206,7 @@ ref|NP_039785.1|,Sulfolobus spindle-shaped virus 1,Fuselloviridae;Alphafusellovi
 And the run command:
 
 ```
-vcontact2 --raw-proteins [proteins file] --rel-mode ‘Diamond’ --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir [target output directory]
+vcontact2 --raw-proteins [proteins file] --proteins-fp [gene-to-genome mapping file] --db 'ProkaryoticViralRefSeq211-Merged' --output-dir [target output directory]
 ```
 
 **Instructions to use other input files/formats are available at the wiki!**
@@ -242,7 +217,7 @@ Example files are provided in the test_data/ directory. These files contain eith
 single genome (VIRSorter_genome*). To use vConTACT2 with them, run the following command:
 
 ```
-vcontact2 --raw-proteins test_data/VIRSorter_genomes.faa --rel-mode ‘Diamond’ --proteins-fp test_data/VIRSorter_genomes_g2g.csv --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
+vcontact2 --raw-proteins test_data/VIRSorter_genomes.faa --proteins-fp test_data/VIRSorter_genomes_g2g.csv --db 'ProkaryoticViralRefSeq211-Merged' --output-dir vConTACT2_Results
 ```
 
 You should find a large assortment of input, intermediate and final output files in the "vConTACT2_Results" directory. 
@@ -255,7 +230,7 @@ clusters. This is the "1st stage" of vConTACT2 pre-processing. If, **at any time
 can restart the run using these 3 intermediate files.
 
 ```
-vcontact2 --pcs test_data/vConTACT_pcs.csv --contigs test_data/vConTACT_contigs.csv --pc-profiles test_data/vConTACT_profiles.csv --rel-mode ‘Diamond’ --db 'ProkaryoticViralRefSeq94-Merged' --pcs-mode MCL --vcs-mode ClusterONE --c1-bin [path to ClusterONE] --output-dir vConTACT2_Results
+vcontact2 --pcs test_data/vConTACT_pcs.csv --contigs test_data/vConTACT_contigs.csv --pc-profiles test_data/vConTACT_profiles.csv --db 'ProkaryoticViralRefSeq211-Merged' --output-dir vConTACT2_Results
 ```
 
 ## Output files
