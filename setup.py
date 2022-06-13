@@ -4,7 +4,7 @@ with open('README.md') as f:
     long_description = f.read()
 
 setup(name='vcontact2',
-      version='0.11.2',
+      version='0.11.3',
       description='Viral Contig Automatic Clustering and Taxonomy',
       url='https://bitbucket.org/MAVERIClab/vcontact2',
       author='Benjamin Bolduc',
