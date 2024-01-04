@@ -10,10 +10,10 @@ import vcontact2.modules
 
 def complete(
     folder,
-    pcm: vcontact2.pcprofiles.PCProfiles | None = None,
-    gc: vcontact2.contig_clusters.ContigCluster | None = None,
-    vm: vcontact2.modules.Modules | None = None,
-    link: pd.DataFrame | None = None,
+    pcm: vcontact2.pcprofiles.PCProfiles,
+    gc: vcontact2.contig_clusters.ContigCluster,
+    vm: vcontact2.modules.Modules,
+    link: pd.DataFrame,
 ):
     """Export all the things!
 
@@ -24,30 +24,19 @@ def complete(
         link (pandas.DataFrame): Link between contig clusters and modules
     """
 
-    if gc is not None:
-        permissive = "_permissive" if gc.permissive else ""
+    permissive = "_permissive" if gc.permissive else ""
 
-        fn = "sig{}_mcl{}{}".format(gc.thres, gc.inflation, permissive)
-        gc.contigs.to_csv(
-            os.path.join(folder, "{}_contigs.csv".format(fn)), index=False
-        )
-        gc.clusters.to_csv(
-            os.path.join(folder, "{}_clusters.csv".format(fn)), index=False
-        )
+    fn = "sig{}_mcl{}{}".format(gc.thres, gc.inflation, permissive)
+    gc.contigs.to_csv(os.path.join(folder, "{}_contigs.csv".format(fn)), index=False)
+    gc.clusters.to_csv(os.path.join(folder, "{}_clusters.csv".format(fn)), index=False)
 
-    if vm is not None:
-        fn = "sig{}_mcl{}_minshared{}".format(vm.thres, vm.inflation, vm.shared_min)
-        vm.modules.to_csv(
-            os.path.join(folder, "{}_modules.csv".format(fn)), index=False
-        )
+    fn = "sig{}_mcl{}_minshared{}".format(vm.thres, vm.inflation, vm.shared_min)
+    vm.modules.to_csv(os.path.join(folder, "{}_modules.csv".format(fn)), index=False)
 
-    if link is not None and gc is not None and vm is not None:
-        fn = "sig{}_mcl{}_modsig{}_modmcl{}_minshared{}".format(
-            gc.thres, gc.inflation, vm.thres, vm.inflation, vm.shared_min
-        )
-        link.to_csv(
-            os.path.join(folder, "{}_link_mod_cluster.csv".format(fn)), index=False
-        )
+    fn = "sig{}_mcl{}_modsig{}_modmcl{}_minshared{}".format(
+        gc.thres, gc.inflation, vm.thres, vm.inflation, vm.shared_min
+    )
+    link.to_csv(os.path.join(folder, "{}_link_mod_cluster.csv".format(fn)), index=False)
 
 
 def summary(folder, gc=None, pcm=None, category="RefSeq-85"):

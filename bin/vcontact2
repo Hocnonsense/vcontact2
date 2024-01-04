@@ -620,7 +620,7 @@ def get_dfs(output_dir, cluster_one_fp, logger: logging.Logger, args=None):
         else:
             # No longer need to re-load dfs
             logger.info(f"Files {fps} exists and will be used. Use -f to overwrite.")
-            return dfs[0], dfs[1], dfs[2], fp
+            return (dfs[0], dfs[1], dfs[2]), fp
 
     if args.db != "None":
         merged_aa_fp = os.path.join(output_dir, "merged.faa")
