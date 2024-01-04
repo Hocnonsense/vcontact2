@@ -22,16 +22,18 @@ def cluster_taxonomy(clusters, taxonomy, level, P, R):
             "pos_cluster" and "recall".
     """
 
-    df = dict()
-    df["pos"] = range(P.shape[0])
-    df["pos_"+level] = np.squeeze(np.asarray(np.argmax(P, 1)))
-    df["precision_"+level] = np.squeeze(np.asarray(np.max(P, 1)))
-    df = pd.DataFrame(df)
+    df = pd.DataFrame(
+        {
+            "pos": range(P.shape[0]),
+            "pos_" + level: np.squeeze(np.asarray(np.argmax(P, 1))),
+            "precision_" + level: np.squeeze(np.asarray(np.max(P, 1))),
+        }
+    )
 
     # If the max of precision is null, do not associate.
-    df.loc[df["precision_"+level] == 0, "pos_"+level] = np.nan
+    df.loc[df["precision_" + level] == 0, "pos_" + level] = np.nan
 
-    clusters = pd.merge(clusters, df, how='left')
+    clusters = pd.merge(clusters, df, how="left")
 
     df = dict()
     df["pos"] = range(R.shape[1])
@@ -42,12 +44,12 @@ def cluster_taxonomy(clusters, taxonomy, level, P, R):
     # If the max of recall is null, do not associate.
     df.loc[df["recall"] == 0, "pos_cluster"] = np.nan
 
-    taxonomy = pd.merge(taxonomy, df, how='left')
+    taxonomy = pd.merge(taxonomy, df, how="left")
 
     return clusters, taxonomy
 
 
-def contig_cluster(contigs, B):
+def contig_cluster(contigs: pd.DataFrame, B: np.matrix):
     """
     Associate each contig with its maximal-membership cluster.
     If the maximal-membership is null, the mbship cluster position
@@ -62,21 +64,23 @@ def contig_cluster(contigs, B):
         dataframe: contigs with pos_cluster_mbship column added.
     """
 
-    cm = {}
-    cm["pos"] = range(B.shape[0])
-    cm["membership"] = np.squeeze(np.asarray(np.max(B, 1)))
-    cm["pos_cluster_mbship"] = np.squeeze(np.asarray(np.argmax(B, 1)))
-    cm = pd.DataFrame(cm)
-
-    # If the max membership is null, do not associate.
+    cm = pd.DataFrame(
+        {
+            "pos": range(B.shape[0]),
+            "membership": np.squeeze(np.asarray(np.max(B, 1))),
+            "pos_cluster_mbship": np.squeeze(np.asarray(np.argmax(B, 1))),
+        }
+    )
     cm.loc[cm["membership"] == 0, "pos_cluster_mbship"] = np.nan
 
-    contigs = pd.merge(contigs, cm)
-    return contigs
+    # If the max membership is null, do not associate.
+
+    return pd.merge(contigs, cm)
 
 
-def contig_taxonomy(contigs, taxonomy, clusters, level,
-                    cluster_choice="pos_cluster_mbship"):
+def contig_taxonomy(
+    contigs, taxonomy, clusters, level, cluster_choice="pos_cluster_mbship"
+):
     """
     Associate each contig with its predicted taxonomic class
 
