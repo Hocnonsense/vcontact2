@@ -5,7 +5,7 @@ B: Membership matrix.
 K: Reference membership matrix.
     K[g,t]: (bool) node g belongs to taxonomic class t.
 Q: Correspondance matrix.
-    Q[c,t]: Sum for the sequence of class t of the membership to the clusters c. 
+    Q[c,t]: Sum for the sequence of class t of the membership to the clusters c.
 R: Recall matrix.
     R[c,t]: Proportion of (Q affiliated to t) that belongs to c.
 P: Precision matrix.
@@ -14,6 +14,7 @@ F: F-measure matrix.
     F[c,t]: (2PR)/(P+R)
 """
 import logging
+import pandas as pd
 
 import numpy as np
 import scipy.sparse as sparse
@@ -42,20 +43,22 @@ def membership(mcl_results, network, nodes):
     network = (network - network.min()) / (network.max() - network.min())
 
     # Sum of weights linking to a given target.
-    B_sum = np.hstack([network.sum(1)]*len(mcl_results))
+    B_sum = np.hstack([network.sum(1)] * len(mcl_results))
 
     # A list giving the columns of the i-th cluster members :
-    clusters = [np.int_(nodes.query("name in members").ix[:, "pos"].values)
-                for members in mcl_results]
+    clusters = [
+        np.int_(nodes.query("name in members").ix[:, "pos"].values)
+        for members in mcl_results
+    ]
 
     B_clust = np.hstack([network[:, cols].sum(1) for cols in clusters])
 
-    B = B_clust/B_sum
+    B = B_clust / B_sum
     B = np.nan_to_num(B)
     return B
 
 
-def bool_membership(contigs):
+def bool_membership(nodes: pd.DataFrame):
     """Membership matrix of the node to the clusters.
 
     Args:
@@ -65,17 +68,24 @@ def bool_membership(contigs):
         sparse_matrix: B, Membership matrix #node X #clusters,
             B(g,c) = bool(g \in c)
     """
-    nb_contigs = len(contigs)
-    nb_clusters = contigs.pos_cluster.max()+1
-    xy = contigs.reset_index().loc[:, ["pos", "pos_cluster"]].dropna(subset=["pos_cluster"]).values  # pos?, # membership
-    B = sparse.coo_matrix(([1.0]*len(xy), zip(*xy)), shape=(nb_contigs, nb_clusters))
-    B = B.todense()
+    nb_contigs = len(nodes)
+    nb_clusters = nodes["pos_cluster"].max() + 1
+    xy = (
+        nodes.reset_index()
+        .loc[:, ["pos", "pos_cluster"]]
+        .dropna(subset=["pos_cluster"])
+        .values
+    )  # pos?, # membership
+    B = sparse.coo_matrix(
+        ([1.0] * len(xy), zip(*xy)), shape=(nb_contigs, nb_clusters)
+    ).todense()
 
     return B
 
 
-def reference_membership(level, contigs, taxonomy,
-                         condition="origin=='RefSeq-85'"):  # refseq_jan14  RefSeq-81
+def reference_membership(
+    level, contigs, taxonomy, condition="origin=='RefSeq-85'"
+):  # refseq_jan14  RefSeq-81
     """
     Build K the (Genome X Taxonomic class) reference membership matrix.
 
@@ -124,17 +134,17 @@ def correspondence(K, B):
     Q = np.dot(np.transpose(B), K.todense())
 
     # Precision
-    Q_hsum = np.hstack([Q.sum(1)]*Q.shape[1])
+    Q_hsum = np.hstack([Q.sum(1)] * Q.shape[1])
     P = Q / Q_hsum
     P = np.nan_to_num(P)
 
     # Recall
-    Q_vsum = np.vstack([Q.sum(0)]*Q.shape[0])
+    Q_vsum = np.vstack([Q.sum(0)] * Q.shape[0])
     R = Q / Q_vsum
     R = np.nan_to_num(R)
 
     # F1-measure
-    F = 2 * np.divide(np.multiply(P, R), P+R)
+    F = 2 * np.divide(np.multiply(P, R), P + R)
     F = np.nan_to_num(F)
     return Q, R, P, F
 
@@ -161,13 +171,13 @@ def clustering_wise_metrics(P, R, B, K):
     cwise_R = float(np.dot(np.max(R, 0), np.transpose(K.sum(0))))
     cwise_R /= K.sum()
 
-    cwise_F = 2 * (cwise_P * cwise_R)/(cwise_P + cwise_R)
+    cwise_F = 2 * (cwise_P * cwise_R) / (cwise_P + cwise_R)
     return cwise_P, cwise_R, cwise_F
 
 
-def link_clusters(network,contigs,col_cluster="pos_cluster"):
-    """Link the clusters 
-    
+def link_clusters(network, contigs, col_cluster="pos_cluster"):
+    """Link the clusters
+
     Args:
         network (sparse-matrix): similarity network.
         contigs (dataframe): with columns pos (position in the matrix) and
@@ -175,19 +185,18 @@ def link_clusters(network,contigs,col_cluster="pos_cluster"):
         col_cluster (str): column to use in "contigs".
 
     Returns:
-        sparse-matrix: Contig cluster network, edge weight is inter over intra 
-           total similarity. 
+        sparse-matrix: Contig cluster network, edge weight is inter over intra
+           total similarity.
     """
     contigs = contigs.dropna(subset=[col_cluster])
 
-    # bool(Z[contig,cluster]) == contig is in cluster 
-    Z = sparse.coo_matrix(([1.0]*len(contigs),
-                           [contigs.pos,contigs[col_cluster]]))
+    # bool(Z[contig,cluster]) == contig is in cluster
+    Z = sparse.coo_matrix(([1.0] * len(contigs), [contigs.pos, contigs[col_cluster]]))
     Z = Z.tocsr()
 
     # S = Z^{T}NZ[cluster,cluster] = sum of weights between the two clusters
     S = np.transpose(Z).dot(network.dot(Z))
-        
+
     # Each column is the diagonal of S. (aka intra sum of weight)
     sii = np.vstack([S.diagonal()] * S.shape[0])
 
@@ -195,7 +204,7 @@ def link_clusters(network,contigs,col_cluster="pos_cluster"):
     L = (S + S.T).todense() / (sii + sii.T)
 
     # The diagonal is null
-    np.fill_diagonal(L,0)
-    
+    np.fill_diagonal(L, 0)
+
     L = np.nan_to_num(L)
     return L
