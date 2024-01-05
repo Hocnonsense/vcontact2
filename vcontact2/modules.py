@@ -26,6 +26,7 @@ class Modules(object):
         threshold=10,
         shared_min=3,
         name=None,
+        threads=0,
     ):
         """
         Args:
@@ -81,7 +82,9 @@ class Modules(object):
 
         # Define the modules, runs MCL on PCs -> modules,
         # df w/ annotated_proteins, id, pos, position, size
-        self.modules = self.define_modules(self.network, self.folder, self.inflation)
+        self.modules = self.define_modules(
+            self.network, self.folder, self.inflation, threads
+        )
         # Calls self.matrix, returns matrix w/ proportion of module's PCs in contig
         self.matrix_module = self.module_in_contigs()
 
@@ -90,7 +93,7 @@ class Modules(object):
             "Modules object {}, {} modules, (contigs, pc) : {}," "sig. threshold {} "
         ).format(self.name, len(self.modules), self.matrix.shape, self.thres)
 
-    def define_modules(self, matrix, folder, I):
+    def define_modules(self, matrix, folder, I, threads=0):
         """
         Save the pc network in a file ready for MCL
         Run MCL
@@ -148,7 +151,7 @@ class Modules(object):
         logger.info("Clustering the PC similarity-network")
         if not os.path.exists(fi_out):
             subprocess.call(
-                f"mcl {fi_in} -o {fi_out} --abc -I {I}",
+                f"mcl {fi_in} -o {fi_out} --abc -I {I} -te {threads}",
                 shell=True,
             )
             logger.debug("MCL({}) results are saved in {}.".format(I, fi_out))

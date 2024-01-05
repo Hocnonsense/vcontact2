@@ -45,6 +45,7 @@ class ContigCluster(object):
         name=None,
         membership_simple=False,
         mode="MCL",
+        threads=0,
     ):
         """
         Init the object with a pc-profile object and perform the clustering
@@ -120,7 +121,7 @@ class ContigCluster(object):
 
         if mode == "MCL":
             self.clusters, self.cluster_results = self.mcl_cluster(
-                os.path.join(self.folder, self.name), self.inflation
+                os.path.join(self.folder, self.name), self.inflation, threads=threads
             )
 
         self.matrix = {}
@@ -170,7 +171,7 @@ class ContigCluster(object):
 
         return tax
 
-    def mcl_cluster(self, basename, I, force=False):
+    def mcl_cluster(self, basename, I, force=False, threads=0):
         """Export the matrix, Run MCL and load the results
 
         Args:
@@ -202,7 +203,8 @@ class ContigCluster(object):
 
         if not os.path.exists(fi_clusters or force):
             subprocess.call(
-                "mcl {0} -o {1} --abc -I {2}".format(fi_ntw, fi_clusters, I), shell=True
+                f"mcl {fi_ntw} -o {fi_clusters} --abc -I {I} -te {threads}",
+                shell=True,
             )
             logger.debug("MCL({}) results are saved in {}.".format(I, fi_clusters))
         else:

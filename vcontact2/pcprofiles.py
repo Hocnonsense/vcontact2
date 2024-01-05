@@ -171,7 +171,8 @@ class PCProfiles(object):
 
             results = []
             # https://stackoverflow.com/questions/26104512/how-to-obtain-the-results-from-a-pool-of-threads-in-python
-            commons_contigs = [pair for pair in zip(*commons_pc.nonzero())]
+            commons_contigs = [(a, b) for (a, b) in zip(*commons_pc.nonzero()) if a < b]
+            sys.stdout.write("-" * (len(commons_contigs) // 10000) + "\n")
 
             for partition in self.grouper(
                 commons_contigs, math.ceil(len(commons_contigs) / threads)
@@ -294,7 +295,10 @@ class PCProfiles(object):
 
             results = []
 
-            commons_modules = [pair for pair in zip(*commons_contigs.nonzero())]
+            commons_modules = [
+                (a, b) for (a, b) in zip(*commons_contigs.nonzero()) if a < b
+            ]
+            sys.stdout.write("-" * (len(commons_modules) // 10000) + "\n")
 
             for partition in self.grouper(
                 commons_modules, math.ceil(commons_contigs.shape[0] / threads)
@@ -370,8 +374,8 @@ class PCProfiles(object):
         Returns:
             list: contig contig significance scores passing threshold
         """
-
         results = []
+        i = j = 0
 
         for A, B in shard:
             if A < B:
@@ -381,7 +385,16 @@ class PCProfiles(object):
 
                 if sig > thres:
                     results.append([A, B, sig])
+                    i += 1
+                    if i % 10000 == 0:
+                        sys.stdout.write(".")
+                else:
+                    j += 1
+                    if i % 10000 == 0:
+                        sys.stdout.write(" ")
 
+        sys.stdout.write("!")
+        sys.stdout.flush()
         return results
 
     def grouper(self, iterable, n, fillvalue=None):

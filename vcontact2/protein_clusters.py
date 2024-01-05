@@ -126,7 +126,7 @@ def run_diamond(aa_fp, db_fp, cpu: int, evalue: float, alignments: int, diamond_
     return diamond_out_fn
 
 
-def make_protein_clusters_mcl(blast_fp, out_p, inflation=2):
+def make_protein_clusters_mcl(blast_fp, out_p, inflation=2, threads=0):
     """
     Args:
         blast_fp (str): Path to blast results file
@@ -162,9 +162,7 @@ def make_protein_clusters_mcl(blast_fp, out_p, inflation=2):
     mcl_clstr_fp = os.path.join(out_p, mcl_clstr_fn)
 
     subprocess.check_call(
-        "mcl {0} -I {1} -use-tab {2} -o {3}".format(
-            mci_fp, inflation, mcxload_fp, mcl_clstr_fp
-        ),
+        f"mcl {mci_fp} -I {inflation} -use-tab {mcxload_fp} -o {mcl_clstr_fp} -te {threads}",
         shell=True,
     )
 
