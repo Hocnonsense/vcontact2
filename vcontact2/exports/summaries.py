@@ -41,8 +41,7 @@ def find_excluded(merged, ntw, c1_df):
     """
 
     # Get list of all genomes
-    merged_df = pd.read_csv(merged, header=0, index_col=0)
-    merged_df.rename(
+    merged_df = pd.read_csv(merged, header=0, index_col=0).rename(
         columns={
             "kingdom": "Kingdom",
             "phylum": "Phylum",
@@ -52,7 +51,6 @@ def find_excluded(merged, ntw, c1_df):
             "genus": "Genus",
             "contig_id": "Genome",
         },
-        inplace=True,
     )
     contigs = set(merged_df["Genome"].tolist())
 
@@ -502,7 +500,7 @@ def final_summary(
             logger.error(
                 f"There was another error during the handling of {genome}: {e}"
             )
-            exit(1)
+            raise e
 
     node_summary_df["Quality"] = node_summary_df["Quality"].apply(lambda x: round(x, 4))
     node_summary_df["Adjusted P-value"] = node_summary_df["Adjusted P-value"].apply(

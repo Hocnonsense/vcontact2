@@ -547,7 +547,7 @@ def check_deps(args, logger: logging.Logger):
                 cluster_one_fp = shutil.which("clusterone")
                 if cluster_one_fp is None:
                     logger.error("Could not find ClusterONE java file.")
-                    exit(1)
+                    raise FileNotFoundError("Could not find ClusterONE java file.")
             else:
                 cluster_one_java = True
                 logger.info("Found ClusterONE: {}".format(cluster_one_fp))
@@ -573,7 +573,7 @@ def check_deps(args, logger: logging.Logger):
                         res.stderr.decode("utf-8")
                     )
                 )
-                exit(1)
+                raise FileNotFoundError("Could not run ClusterONE.")
 
     diamond_fp = args.diamond_fp
     if args.rel_mode == "Diamond":
@@ -581,7 +581,7 @@ def check_deps(args, logger: logging.Logger):
             diamond_fp = shutil.which("diamond")
             if diamond_fp is None:
                 logger.error("Could not find Diamond in $PATH.")
-                exit(1)
+                raise FileNotFoundError("Could not find Diamond.")
             else:
                 logger.info("Found Diamond: {}".format(diamond_fp))
 
@@ -591,7 +591,7 @@ def check_deps(args, logger: logging.Logger):
             blastp_fp = shutil.which("blastp")
             if blastp_fp is None:
                 logger.error("Could not find BLASTp in $PATH.")
-                exit(1)
+                raise FileNotFoundError("Could not find BLASTp.")
             else:
                 logger.info("Found BLASTP: {}".format(blastp_fp))
 
@@ -599,7 +599,7 @@ def check_deps(args, logger: logging.Logger):
         mcl_fp = shutil.which("mcxload")
         if shutil.which("mcxload") is None:
             logger.error("Could not find MCL (specifically mcxload) in $PATH.")
-            exit(1)
+            raise FileNotFoundError("Could not find MCL.")
         else:
             logger.info("Found MCL: {}".format(mcl_fp))
     return cluster_one_fp
@@ -894,7 +894,10 @@ def main(args):
                     "Unable to identify header for gene-to-genome file. Please ensure that you have the"
                     ' following headers: "contig_id", "genome_id" and "keywords".'
                 )
-                exit(1)
+                raise KeyError(
+                    "Unable to identify header for gene-to-genome file. Please ensure that you have the"
+                    ' following headers: "contig_id", "genome_id" and "keywords".'
+                )
 
     # Check if exists
     (contigs_df, clusters_df, profiles_df), profiles_fp = get_dfs(
@@ -1041,8 +1044,7 @@ def main(args):
 
     except Exception as e:
         logger.error("Error in contig clustering")
-        logger.exception(e)
-        exit(1)
+        raise e
 
     try:
         vc = vcontact2.cluster_refinements.ViralClusters(
@@ -1050,8 +1052,7 @@ def main(args):
         )
     except Exception as e:
         logger.error("Error in viral clusters")
-        logger.exception(e)
-        exit(1)
+        raise e
 
     print("\n\n" + "{:-^80}".format("Protein modules"))
 
@@ -1072,8 +1073,7 @@ def main(args):
 
     except Exception as e:
         logger.error("Error in protein module computation")
-        logger.exception(e)
-        exit(1)
+        raise e
 
     # by the time the linking happens, contigs are already forced into clusters that they could be sharing....
     # VCs and PC modules are independent of each other, as each takes into account the totality of the other, yet isn't
@@ -1092,8 +1092,7 @@ def main(args):
     except Exception as e:
         link = None
         logger.error("Error in linking modules and clusters")
-        logger.exception(e)
-        exit(1)
+        raise e
 
     print("\n\n" + "{:-^80}".format("Exporting results files"))
 
@@ -1103,14 +1102,14 @@ def main(args):
             vcontact2.exports.csv.complete(output_dir, pcp, gc, vm, link)
         except Exception as e:
             logger.error("Error in CSV export")
-            logger.exception(e)
+            raise e
 
     if "profiles" in args.exports:
         try:
             vcontact2.exports.profiles.push()
         except Exception as e:
             logger.error("Error in profiles export")
-            logger.exception(e)
+            raise e
 
     if "cytoscape" in args.exports:
         cytoscape_file = output_dir + "cytoscape_export"
@@ -1121,7 +1120,7 @@ def main(args):
             )
         except Exception as e:
             logger.error("Error in Cytoscape export of contigs")
-            logger.exception(e)
+            raise e
 
         try:
             vcontact2.exports.cytoscape.clusters(
@@ -1142,7 +1141,7 @@ def main(args):
             )
         except Exception as e:
             logger.error("Error in Cytoscape export of clusters")
-            logger.exception(e)
+            raise e
 
     if "krona" in args.exports:
         krona_file = output_dir + "krona_export.txt"
@@ -1150,7 +1149,7 @@ def main(args):
             vcontact2.exports.krona.textfile(gc.contigs, krona_file)
         except Exception as e:
             logger.error("Error in Krona export")
-            logger.exception(e)
+            raise e
 
         try:
             subprocess.check_call("ktImportText {}".format(krona_file), shell=True)
@@ -1177,7 +1176,7 @@ def main(args):
             f"Error in identifying excluded genomes (i.e. those dropped for being singletons or outliers):"
             f" {e}"
         )
-        exit(1)
+        raise e
 
     if len(excluded) == 0:
         logger.warning(
@@ -1203,7 +1202,7 @@ def main(args):
         )
     except Exception as e:
         logger.error(f"Error in exporting the final summary table: {e}")
-        exit(1)
+        raise e
 
 
 if __name__ == "__main__":
