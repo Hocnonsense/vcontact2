@@ -25,7 +25,7 @@ def merge_aa(user_aa_fp, ref_db_fp, merged_aa_fp):
                     seq_records = SeqIO.parse(aa_fh, "fasta")
                     SeqIO.write(seq_records, merged_aa_fh, "fasta")
             else:
-                with open(aa_fp, "rU") as aa_fh:
+                with open(aa_fp, "r") as aa_fh:
                     seq_records = SeqIO.parse(aa_fh, "fasta")
                     SeqIO.write(seq_records, merged_aa_fh, "fasta")
 
