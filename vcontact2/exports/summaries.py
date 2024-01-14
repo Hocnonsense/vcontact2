@@ -114,7 +114,7 @@ def final_summary(
     folder,
     contigs: pd.DataFrame,
     network,
-    profiles_fp,
+    profiles_df: pd.DataFrame,
     viral_clusters: vcontact2.cluster_refinements.ViralClusters,
     excluded: pd.DataFrame,
 ):
@@ -175,7 +175,6 @@ def final_summary(
 
     # Build PC array
     logger.info("Building PC array")
-    profiles_df = pd.read_csv(profiles_fp, header=0)
 
     # Get number of comparisons
     logger.info("Calculating comparisons for back-calculations")

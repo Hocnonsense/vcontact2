@@ -40,13 +40,14 @@ class ViralClusters(object):
 
     """
 
-    def __init__(self, contigs: pd.DataFrame, profiles, optimize=False):
+    def __init__(
+        self, contigs: pd.DataFrame, profiles_df: pd.DataFrame, optimize=False
+    ):
         """
         :param contigs: (dataframe)
         """
         self.name = "ViralClusters"
 
-        profiles_df = pd.read_csv(profiles, header=0)
         # Build PC array
         self.metrics = pd.DataFrame(columns=summary_headers)
         self.results = {}

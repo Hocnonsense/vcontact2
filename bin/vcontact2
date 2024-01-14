@@ -187,6 +187,22 @@ ref_g2c = {
 }
 
 
+logging.addLevelName(
+    logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(logging.WARNING)
+)
+logging.addLevelName(
+    logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.ERROR)
+)
+logging.addLevelName(
+    logging.INFO, "\033[1;42m%s\033[1;0m" % logging.getLevelName(logging.INFO)
+)
+logging.addLevelName(
+    logging.DEBUG, "\033[1;43m%s\033[1;0m" % logging.getLevelName(logging.DEBUG)
+)
+logging.getLogger().addFilter(logging.Filter("vcontact2"))
+logger = logging.getLogger("vcontact2")
+
+
 # Argparse multiple inheritance
 class CustomFormatter(
     argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter
@@ -510,33 +526,16 @@ misc.add_argument(
 
 def init_logger(verbose: int):
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-
-    logging.addLevelName(
-        logging.WARNING, "\033[1;31m%s\033[1;0m" % logging.getLevelName(logging.WARNING)
-    )
-    logging.addLevelName(
-        logging.ERROR, "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.ERROR)
-    )
-    logging.addLevelName(
-        logging.INFO, "\033[1;42m%s\033[1;0m" % logging.getLevelName(logging.INFO)
-    )
-    logging.addLevelName(
-        logging.DEBUG, "\033[1;43m%s\033[1;0m" % logging.getLevelName(logging.DEBUG)
-    )
-    logging.getLogger().addFilter(logging.Filter("vcontact2"))
-
     # create logger with 'spam_application'
-    logger = logging.getLogger("vcontact2")
     logger.setLevel(log_levels[verbose])
     ch = logging.StreamHandler()
     ch.setLevel(log_levels[verbose])
     ch.setFormatter(logging.Formatter("%(levelname)s:%(name)s: %(message)s"))
     logger.addHandler(ch)
     print("\n{:=^80}\n".format("This is vConTACT2 {}".format(vcontact2.__version__)))
-    return logger
 
 
-def check_deps(args, logger: logging.Logger):
+def check_deps(args):
     # Checks
     cluster_one_fp = args.cluster_one
     cluster_one_java = False  # Need to keep track if it's jarfile or not
@@ -605,22 +604,27 @@ def check_deps(args, logger: logging.Logger):
     return cluster_one_fp
 
 
-def get_dfs(output_dir, cluster_one_fp, logger: logging.Logger, args=None):
-    if not args.force_overwrite:
-        fps = [
-            os.path.join(output_dir, "vConTACT_{}.csv".format(name))
-            for name in ("contigs", "pcs", "profiles")
-        ]
-        dfs = []
-        for fp in fps:
-            if os.path.exists(fp):
-                dfs.append(pd.read_csv(fp))
-            else:
+def get_dfs(
+    output_dir, cluster_one_fp, args=None
+) -> tuple[
+    tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame],
+    tuple[
+        vcontact2.pcprofiles.sparse.coo_matrix, vcontact2.pcprofiles.sparse.csr_matrix
+    ],
+]:
+    fps = {
+        f"{name}_fp": os.path.join(output_dir, "vConTACT_{}.csv".format(name))
+        for name in ("contigs", "pcs", "profiles", "proteins")
+    }
+    if args is None or not args.force_overwrite:
+        for fp in fps.values():
+            if not os.path.exists(fp):
+                assert args is not None
                 break
         else:
             # No longer need to re-load dfs
             logger.info(f"Files {fps} exists and will be used. Use -f to overwrite.")
-            return (dfs[0], dfs[1], dfs[2]), fp
+            return read_dfs(**fps)
 
     if args.db != "None":
         merged_aa_fp = os.path.join(output_dir, "merged.faa")
@@ -771,8 +775,9 @@ def get_dfs(output_dir, cluster_one_fp, logger: logging.Logger, args=None):
 
     # Load the clusters...
     logger.info(
-        "Building the cluster and profiles (this may take some time...)\nIf it fails, try re-running "
-        "using --blast-fp flag and specifying merged.self-diamond.tab (or merged.self-blastp.tab)"
+        "Building the cluster and profiles (this may take some time...)\n"
+        "If it fails, try re-running using --blast-fp flag "
+        "and specifying merged.self-diamond.tab (or merged.self-blastp.tab)"
     )
     (
         protein_df,
@@ -788,53 +793,46 @@ def get_dfs(output_dir, cluster_one_fp, logger: logging.Logger, args=None):
     # Export csv files...
     logger.info("Saving intermediate files...")  # Save the dataframes
 
-    dfs = [protein_df, contigs_df, clusters_df]
-    names = ["proteins", "contigs", "pcs"]
-
-    for name, df in zip(names, dfs):
-        fn = "vConTACT_{}.csv".format(name)
-        fp = os.path.join(output_dir, fn)
-        index_id = name.strip("s") + "_id"
+    for name, df in {
+        "proteins": protein_df,
+        "contigs": contigs_df,
+        "pcs": clusters_df,
+    }.items():
         # hindsight
-        df.set_index(index_id).to_csv(fp)
+        df.set_index(name.strip("s") + "_id").to_csv(fps[f"{name}_fp"])
 
-    profiles_fn = "vConTACT_profiles.csv"
-    profiles_fp = os.path.join(output_dir, profiles_fn)
-    profiles_df.to_csv(profiles_fp, index=False)
-    return (contigs_df, clusters_df, profiles_df), profiles_fp
+    profiles_df.to_csv(fps["profiles_fp"], index=False)
+    return read_dfs(**fps)
 
 
-def read_dfs(
-    contigs_df: pd.DataFrame,
-    clusters_df: pd.DataFrame,
-    profiles_df: pd.DataFrame,
-):
+def read_dfs(contigs_fp, pcs_fp, profiles_fp, proteins_fp=None):
     """
     pcs_df = pos, id, pc_id, nb_proteins
     contigs_csv_df = pos, id (contig), proteins
     profiles = dict w/ matrix and singletons
     Refactor later
     """
-    contigs_csv_df = contigs_df.copy()
+    print("\n\n" + "{:-^80}".format("Loading data"))
+    contigs_csv_df = pd.read_csv(contigs_fp)
     contigs_csv_df["contig_id"] = contigs_csv_df["contig_id"].str.replace(" ", "~")
     contigs_csv_df.index.name = "pos"
     contigs_csv_df.reset_index(inplace=True)
-
+    #
+    profiles_df = pd.read_csv(profiles_fp)
     profiles = profiles_df.copy()
-
-    profiles["contig_id"] = profiles["contig_id"].str.replace(
-        " ", "~"
-    )  # ClusterONE can't handle spaces
+    #
+    # ClusterONE can't handle spaces
+    profiles["contig_id"] = profiles["contig_id"].str.replace(" ", "~")
     # Filtering the PC profiles that appears only once
     before_filter = len(profiles)
     cont_by_pc = profiles.groupby("pc_id")["contig_id"].count().reset_index()
-
+    #
     # get the number of contigs for each pcs and add it to the dataframe
     cont_by_pc.columns = ["pc_id", "nb_proteins"]
     pcs_csv_df = pd.merge(
-        clusters_df, cont_by_pc, left_on="pc_id", right_on="pc_id", how="left"
+        pd.read_csv(pcs_fp), cont_by_pc, left_on="pc_id", right_on="pc_id", how="left"
     ).fillna({"nb_proteins": 0})
-
+    #
     # Drop the pcs that <= 1 contig from the profiles.
     pcs_csv_df = pcs_csv_df[pcs_csv_df["nb_proteins"] > 1].reset_index(drop=True)
     pcs_csv_df.index.name = "pos"
@@ -845,8 +843,18 @@ def read_dfs(
     ]  # cont_by_pc.query("nb_contigs>1")
     # profiles = profiles.query("pc_id in at_least_a_cont.pc_id")
     profiles = profiles[profiles["pc_id"].isin(at_least_a_cont["pc_id"])]
-
-    return (contigs_csv_df, pcs_csv_df, profiles), before_filter
+    #
+    logger.debug("Read {} entries from {}".format(len(contigs_csv_df), contigs_fp))
+    logger.info(
+        "Read {} entries (dropped {} singletons) from {}".format(
+            len(profiles), (before_filter - len(profiles)), profiles_fp
+        )
+    )
+    #
+    profiles_matrix_singletons = vcontact2.pcprofiles.build_pc_matrices(
+        profiles.copy(), contigs_csv_df, pcs_csv_df
+    )
+    return (contigs_csv_df, pcs_csv_df, profiles_df), profiles_matrix_singletons
 
 
 def main(args):
@@ -855,10 +863,10 @@ def main(args):
 
     # In essence, by allowing the opportunity to use "raw proteins" and have vConTACT handle everything, the
     # functionality provided by vConTACT-PCs is eliminated.
-    logger = init_logger(args.verbose)
+    init_logger(args.verbose)
 
     print("\n\n" + "{:-^80}".format("Pre-Analysis"))
-    cluster_one_fp = check_deps(args, logger)
+    cluster_one_fp = check_deps(args)
 
     # Global
     logger.info("Identified {} CPUs".format(args.threads))
@@ -900,42 +908,15 @@ def main(args):
                 )
 
     # Check if exists
-    (contigs_df, clusters_df, profiles_df), profiles_fp = get_dfs(
-        output_dir, cluster_one_fp, logger, args
-    )
+    (contigs_csv_df, pcs_csv_df, profiles_df), profiles_matrix_singletons = get_dfs(
+        output_dir, cluster_one_fp, args
+    )  # read_dfs(**fps)
 
     # Loader
-    print("\n\n" + "{:-^80}".format("Loading data"))
-    name = "vConTACT2"
-    (contigs_csv_df, pcs_csv_df, profiles), before_filter = read_dfs(
-        contigs_df, clusters_df, profiles_df
-    )
-    logger.debug(
-        "Read {} entries from {}".format(
-            len(contigs_csv_df),
-            os.path.join(output_dir, "{}_contigs.csv".format(name)),
-        )
-    )
-    logger.info(
-        "Read {} entries (dropped {} singletons) from {}".format(
-            len(profiles), (before_filter - len(profiles)), profiles_fp
-        )
-    )
-
-    # save
-    profiles_csv = {
-        k: v
-        for k, v in zip(
-            ("matrix", "singletons"),
-            vcontact2.pcprofiles.build_pc_matrices(
-                profiles.copy(), contigs_csv_df, pcs_csv_df
-            ),
-        )
-    }
-
     merged_fp = os.path.join(output_dir, "merged_df.csv")
     # Protein Cluster Profile
     # .contigs, .pcs, .matrix, .singletons, .ntw, .ntw_modules
+    name = "vConTACT2"
     pcp_fp = os.path.join(output_dir, name + ".pkle")
 
     if not os.path.exists(pcp_fp) or args.force_overwrite:
@@ -985,7 +966,7 @@ def main(args):
         pcp = vcontact2.pcprofiles.PCProfiles(
             merged_df,
             pcs_csv_df,
-            profiles_csv,
+            profiles_matrix_singletons,
             args.threads,
             name,
             args.sig,  # 1.0
@@ -1048,7 +1029,7 @@ def main(args):
 
     try:
         vc = vcontact2.cluster_refinements.ViralClusters(
-            gc.contigs, profiles_fp, optimize=options.optimize
+            gc.contigs, profiles_df, optimize=args.optimize
         )
     except Exception as e:
         logger.error("Error in viral clusters")
@@ -1196,7 +1177,7 @@ def main(args):
             output_dir,
             vc.contigs,
             os.path.join(output_dir, gc.name + ".ntw"),
-            profiles_fp,
+            profiles_df,
             vc,
             excluded,
         )

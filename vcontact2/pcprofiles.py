@@ -38,7 +38,7 @@ class PCProfiles(object):
         self,
         contigs: pd.DataFrame,
         pcs: pd.DataFrame,
-        profiles: dict[str, sparse.spmatrix],
+        matrix_singletons: tuple[sparse.spmatrix, sparse.spmatrix],
         threads,
         name=None,
         sig=1.0,
@@ -67,8 +67,7 @@ class PCProfiles(object):
         # Get the data
         self.contigs = contigs  # pos, id, proteins
         self.pcs = pcs  # pos, id, pc_id, nb_contigs
-        self.matrix, self.singletons = profiles["matrix"], profiles["singletons"]
-        self.matrix, self.singletons = profiles["matrix"], profiles["singletons"]
+        self.matrix, self.singletons = matrix_singletons
 
         # Store parameters
         self.sig = sig
