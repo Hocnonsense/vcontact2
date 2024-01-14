@@ -604,6 +604,58 @@ def check_deps(args):
     return cluster_one_fp
 
 
+def read_dfs(contigs_fp, pcs_fp, profiles_fp, proteins_fp=None):
+    """
+    pcs_df = pos, id, pc_id, nb_proteins
+    contigs_csv_df = pos, id (contig), proteins
+    profiles = dict w/ matrix and singletons
+    Refactor later
+    """
+    print("\n\n" + "{:-^80}".format("Loading data"))
+    contigs_csv_df = pd.read_csv(contigs_fp)
+    contigs_csv_df["contig_id"] = contigs_csv_df["contig_id"].str.replace(" ", "~")
+    contigs_csv_df.index.name = "pos"
+    contigs_csv_df.reset_index(inplace=True)
+    #
+    profiles_df = pd.read_csv(profiles_fp)
+    profiles = profiles_df.copy()
+    #
+    # ClusterONE can't handle spaces
+    profiles["contig_id"] = profiles["contig_id"].str.replace(" ", "~")
+    # Filtering the PC profiles that appears only once
+    before_filter = len(profiles)
+    cont_by_pc = profiles.groupby("pc_id")["contig_id"].count().reset_index()
+    #
+    # get the number of contigs for each pcs and add it to the dataframe
+    cont_by_pc.columns = ["pc_id", "nb_proteins"]
+    pcs_csv_df = pd.merge(
+        pd.read_csv(pcs_fp), cont_by_pc, left_on="pc_id", right_on="pc_id", how="left"
+    ).fillna({"nb_proteins": 0})
+    #
+    # Drop the pcs that <= 1 contig from the profiles.
+    pcs_csv_df = pcs_csv_df[pcs_csv_df["nb_proteins"] > 1].reset_index(drop=True)
+    pcs_csv_df.index.name = "pos"
+    pcs_csv_df = pcs_csv_df.reset_index()
+
+    at_least_a_cont = cont_by_pc[
+        cont_by_pc["nb_proteins"] > 1
+    ]  # cont_by_pc.query("nb_contigs>1")
+    # profiles = profiles.query("pc_id in at_least_a_cont.pc_id")
+    profiles = profiles[profiles["pc_id"].isin(at_least_a_cont["pc_id"])]
+    #
+    logger.debug("Read {} entries from {}".format(len(contigs_csv_df), contigs_fp))
+    logger.info(
+        "Read {} entries (dropped {} singletons) from {}".format(
+            len(profiles), (before_filter - len(profiles)), profiles_fp
+        )
+    )
+    #
+    profiles_matrix_singletons = vcontact2.pcprofiles.build_pc_matrices(
+        profiles.copy(), contigs_csv_df, pcs_csv_df
+    )
+    return (contigs_csv_df, pcs_csv_df, profiles_df), profiles_matrix_singletons
+
+
 def get_dfs(
     output_dir, cluster_one_fp, args=None
 ) -> tuple[
@@ -803,58 +855,6 @@ def get_dfs(
 
     profiles_df.to_csv(fps["profiles_fp"], index=False)
     return read_dfs(**fps)
-
-
-def read_dfs(contigs_fp, pcs_fp, profiles_fp, proteins_fp=None):
-    """
-    pcs_df = pos, id, pc_id, nb_proteins
-    contigs_csv_df = pos, id (contig), proteins
-    profiles = dict w/ matrix and singletons
-    Refactor later
-    """
-    print("\n\n" + "{:-^80}".format("Loading data"))
-    contigs_csv_df = pd.read_csv(contigs_fp)
-    contigs_csv_df["contig_id"] = contigs_csv_df["contig_id"].str.replace(" ", "~")
-    contigs_csv_df.index.name = "pos"
-    contigs_csv_df.reset_index(inplace=True)
-    #
-    profiles_df = pd.read_csv(profiles_fp)
-    profiles = profiles_df.copy()
-    #
-    # ClusterONE can't handle spaces
-    profiles["contig_id"] = profiles["contig_id"].str.replace(" ", "~")
-    # Filtering the PC profiles that appears only once
-    before_filter = len(profiles)
-    cont_by_pc = profiles.groupby("pc_id")["contig_id"].count().reset_index()
-    #
-    # get the number of contigs for each pcs and add it to the dataframe
-    cont_by_pc.columns = ["pc_id", "nb_proteins"]
-    pcs_csv_df = pd.merge(
-        pd.read_csv(pcs_fp), cont_by_pc, left_on="pc_id", right_on="pc_id", how="left"
-    ).fillna({"nb_proteins": 0})
-    #
-    # Drop the pcs that <= 1 contig from the profiles.
-    pcs_csv_df = pcs_csv_df[pcs_csv_df["nb_proteins"] > 1].reset_index(drop=True)
-    pcs_csv_df.index.name = "pos"
-    pcs_csv_df = pcs_csv_df.reset_index()
-
-    at_least_a_cont = cont_by_pc[
-        cont_by_pc["nb_proteins"] > 1
-    ]  # cont_by_pc.query("nb_contigs>1")
-    # profiles = profiles.query("pc_id in at_least_a_cont.pc_id")
-    profiles = profiles[profiles["pc_id"].isin(at_least_a_cont["pc_id"])]
-    #
-    logger.debug("Read {} entries from {}".format(len(contigs_csv_df), contigs_fp))
-    logger.info(
-        "Read {} entries (dropped {} singletons) from {}".format(
-            len(profiles), (before_filter - len(profiles)), profiles_fp
-        )
-    )
-    #
-    profiles_matrix_singletons = vcontact2.pcprofiles.build_pc_matrices(
-        profiles.copy(), contigs_csv_df, pcs_csv_df
-    )
-    return (contigs_csv_df, pcs_csv_df, profiles_df), profiles_matrix_singletons
 
 
 def main(args):
